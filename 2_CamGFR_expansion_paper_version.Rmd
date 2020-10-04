@@ -3046,8 +3046,6 @@ p
 
 ```{r compare_models_using_JNCI_paper_data, eval = F, echo = F}
 
-source("Clean_data_JNCI.R")
-
 JNCI_fitted_values <- New_nonIDMS_data_JNCI %>%
   filter(!(Centre %in% c("Cambridge", "Manchester"))) %>%
   mutate(log_Creat = log(Creat)) %>%
