@@ -33,13 +33,14 @@ csl: /Users/willia01/Documents/Mendeley_Desktop/Bibtex/american-medical-associat
 \beginsupplement
 
 ```{r load_envrirment, include=F, eval = F, echo = F}
-load('2_CamGFR_expansion.RData')
+#load('2_CamGFR_expansion.RData')
 ```
 
 
 ```{r file_setup, include=F}
 # fig_export_dir = "/Users/willia01/Google Drive/PhD/GFR_validation_2/Refitted_CamGFR_paper/Figures_and_tables"
-fig_export_dir = "/Users/willia01/Documents/Projects/GFR/Published_Git/GFR_model_extension/temp/"
+#fig_export_dir = "/Users/willia01/Documents/Projects/GFR/Published_Git/GFR_model_extension/temp/"
+fig_export_dir = "temp"
 
 knitr::opts_chunk$set(warning=F, echo = F, cache = T)
 ```
