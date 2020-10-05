@@ -5,14 +5,14 @@ library(dplyr)
 
 files_location <- getwd()
 
-All_data <- read_csv(paste0(files_location, "All_clean_GFR_data.csv"),
+All_data <- read_csv(file.path(files_location, "All_clean_GFR_data.csv"),
                      col_types = cols(DOB = col_date(format = "%Y-%m-%d"),
                                       Date_GFR = col_date(format = "%Y-%m-%d"),
                                       Date_creat = col_date(format = "%Y-%m-%d"),
                                       Date_diagnosis = col_date(format = "%Y-%m-%d"),
                                       Date_diff = col_number(),
-                                      Age = col_double(), 
-                                      norm_GFR = col_double(), 
+                                      Age = col_double(),
+                                      norm_GFR = col_double(),
                                       Creatinine = col_double(),
                                       Sodium = col_double(),
                                       Urea = col_double(),
@@ -55,19 +55,19 @@ New_nonIDMS_data_JNCI <- All_data %>%
   filter(GFR_index == 1) %>%
   filter(Creat*88.4 > 18) %>% # remove creatinien values less than 18 as some centres do not report creatinine values lwer than this value
   filter(Creat*88.4 < 400) %>% # removed as
-  filter(!Centre %in% c("Adden_old", "Glasgow")) %>% # remove data from previous study 
-  mutate(Centre = factor(Centre, 
-                         labels = c("Manchester", "Edinburgh", "Cambridge", 
+  filter(!Centre %in% c("Adden_old", "Glasgow")) %>% # remove data from previous study
+  mutate(Centre = factor(Centre,
+                         labels = c("Manchester", "Edinburgh", "Cambridge",
                                     "Southampton", "Melbourne", "Wales",
                                     "London-Barts"),
-                         levels = c("Manchester", "Edinburgh", "Adden_new",  
+                         levels = c("Manchester", "Edinburgh", "Adden_new",
                                     "Southampton", "Melbourne", "SW", "Barts"))) %>%
   mutate(Centre = as.character(Centre), Ethnicity = as.character(Ethnicity)) %>%
   mutate(Ethnicity_black = ifelse(is.na(Ethnicity), 0, Ethnicity == "Black")) %>%
   mutate(Ethnicity = ifelse(Ethnicity == "Unknown", NA, Ethnicity)) %>%
   mutate(Diagnosis = ifelse(Diagnosis == "Seminoma", "GCT", Diagnosis)) %>%
   mutate(Patient_type = ifelse(Patient_type %in% c("Donor", "Misc"), "Non-cancer",
-                               Patient_type)) %>% 
+                               Patient_type)) %>%
   mutate(Patient_type = ifelse(Diagnosis == "Non-cancer", "Non-cancer", Patient_type)) %>%
   mutate(Diagnosis = ifelse(Diagnosis == "Non-cancer", "Unknown", Diagnosis)) %>%
   mutate(Ethnicity = ifelse(Ethnicity == "Mixed/Other", "Other", Ethnicity))
