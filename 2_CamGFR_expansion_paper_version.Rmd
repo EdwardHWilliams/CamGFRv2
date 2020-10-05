@@ -92,7 +92,8 @@ not_all_na <- function(x) !all(is.na(x))
 
 # All data that is used at somepoint in this analysis
 Expansion_data <- All_data %>%
-    filter(Centre %in% c("Adden_old", "Adden_new", "Manchester", "Goteborg")) %>% # remove centres where 
+  # remove centres where 
+  filter(Centre %in% c("Adden_old", "Adden_new", "Manchester", "Goteborg")) %>% 
   mutate(BSA = SufA) %>%
   mutate(BMI = Wt/(Ht/100)^2) %>%
   filter(Age >= 18) %>% # removing any patients under 18 years old
@@ -102,22 +103,26 @@ Expansion_data <- All_data %>%
   # centres do not report creatinine values lwer than this value
   filter(Ht > 130) %>% 
   mutate(Centre2 = Centre) %>%
-  mutate(Centre2 = factor(Centre2, labels = c("Cambridge original", "Cambridge new", 
+  mutate(Centre2 = factor(Centre2,
+                          labels = c("Cambridge original", "Cambridge new", 
                                      "Manchester", "Gothenburg"),
-                         levels = c("Adden_old", "Adden_new", "Manchester", 
-                                    "Goteborg"))) %>%  
+                          levels = c("Adden_old", "Adden_new", "Manchester", 
+                                     "Goteborg"))) %>%  
   mutate(Centre = fct_collapse(Centre2, "Cambridge" = 
-                                  c("Cambridge original","Cambridge new"))) %>%
+                                 c("Cambridge original","Cambridge new"))) %>%
   mutate(Centre = as.character(Centre), 
          Centre2 = as.character(Centre2)) %>%
   mutate(Ethnicity_black = ifelse(is.na(Ethnicity), 0, Ethnicity == "Black")) %>%
   mutate(Ethnicity = 
-           ifelse(Ethnicity %in% c("(Not on file)", "Not Stated", "Unknown"), NA, Ethnicity)) %>%
+           ifelse(Ethnicity %in% c("(Not on file)", "Not Stated", "Unknown"),
+                  NA, Ethnicity)) %>%
   mutate(Diagnosis = ifelse(Diagnosis == "Seminoma", "GCT", Diagnosis)) %>%
   mutate(Ethnicity = ifelse(Ethnicity == "Mixed/Other", "Other", Ethnicity)) %>%
-  # mutate(Creat_method = factor(Centre, levels = c("Cambridge", "Gothenburg", "Manchester"), 
+  # mutate(Creat_method = factor(Centre,
+  # levels = c("Cambridge", "Gothenburg", "Manchester"), 
   #                              labels = c("Jaffe", "enzymatic", "Jaffe"))) %>%
-  mutate(Creatinine_methods = interaction(Creatinine_method, Creatinine_type, sep = " ")) %>%
+  mutate(Creatinine_methods = interaction(Creatinine_method,
+                                          Creatinine_type, sep = " ")) %>%
   mutate(Diagnosis = ifelse(Diagnosis == "Seminoma", "GCT", Diagnosis)) %>%
   # mutate(Patient_type = ifelse(Patient_type %in% c("Donor", "Misc"), "Non-cancer",
   #                              Patient_type)) %>% 
@@ -126,20 +131,21 @@ Expansion_data <- All_data %>%
   mutate(Ethnicity = ifelse(Ethnicity == "Mixed/Other", "Other", Ethnicity)) %>%
   select_if(.predicate = not_all_na)
 
-# Filter extreame creatinien values
+# Filter extreme creatinin values
 Expansion_data <- Expansion_data %>%
-  filter(Creat*88.4 > 18) %>% # remove creatinien values less than 18 as some 
+  # remove creatinien values less than 18 as some 
+  filter(Creat*88.4 > 18) %>%
   filter(Creat*88.4 < 400) 
 
-# Filter repeate measurments
+# Filter repeat measurements
 Expansion_data <- Expansion_data %>%
-#   filter(GFR_index == 1) %>% # keeping only a patients first GFR measurment
+  #   filter(GFR_index == 1) %>% # keeping only a patients first GFR measurment
   filter(Date_GFR_diff > 365 | is.na(Date_GFR_diff))
 nrow(Expansion_data)
 
 
 set.seed(1)
-# Data that will be used later to refit CamGFR, ranomly split into validation 
+# Data that will be used later to refit CamGFR, randomly split into validation 
 # and development datasets
 Expansion_data <- Expansion_data %>%
   mutate(fit_index = !(1:n() %in% sample(1:n(), n()/5))) # randomly allocate 1/5 
@@ -172,20 +178,28 @@ The data used in this manuscript are summaries in Tables \ref{tab:summary_centr}
 
 ```{r data_characteristic_tables, cache = T, echo = F, warning=F}
 Samples_per_centre_all <- Expansion_data %>%
- group_by(Centre) %>%
-  summarise("Total samples" = length(GFR),
-            "Total patients" = length(unique(PatientID)),
-            "IDMS creatinine" = length(GFR[Creatinine_type == "IDMS"]),
-            "Enzymatic creatinine" = length(GFR[Creatinine_method == "Enzymatic"]),
-            "Solid tumour" = length(GFR[Patient_type == "Cancer"]),
-            "Hematology" = length(GFR[Patient_type == "Haem"]),
-            "Non-cancer" = length(GFR[Patient_type != "Haem" & Patient_type != "Cancer"]),
-            "Female" = length(GFR[Sex == "F"]),
-            "Repeat patients" = length(GFR[GFR_index > 1]), 
-            "Race - Black" = sum(Ethnicity == "Black", na.rm = T)) %>%
-  rbind(c("Total", sum(.$`Total samples`), sum(.$`Total patients`), sum(.$`IDMS creatinine`), sum(.$`Enzymatic creatinine`), 
-          sum(.$`Solid tumour`), sum(.$Hematology),
-          sum(.$`Non-cancer`), sum(.$Female), sum(.$`Repeat patients`), sum(.$`Race - Black`)))
+  group_by(Centre) %>%
+  summarise("Total samples" = n(),
+            "Total patients" = n_distinct(PatientID),
+            "IDMS creatinine" = sum(Creatinine_type == "IDMS"),
+            "Enzymatic creatinine" = sum(Creatinine_method == "Enzymatic"),
+            "Solid tumour" = sum(Patient_type == "Cancer"),
+            "Hematology" = sum(Patient_type == "Haem"),
+            "Non-cancer" = sum(Patient_type != "Haem" & Patient_type != "Cancer"),
+            "Female" = sum(Sex == "F"),
+            "Repeat patients" = sum(GFR_index > 1)) %>%
+            #"Race - Black" = sum(Ethnicity == "Black", na.rm = T)) %>%
+  rbind(c("Total", sum(.$`Total samples`),
+          sum(.$`Total patients`),
+          sum(.$`IDMS creatinine`),
+          sum(.$`Enzymatic creatinine`), 
+          sum(.$`Solid tumour`),
+          sum(.$Hematology),
+          sum(.$`Non-cancer`),
+          sum(.$Female),
+          sum(.$`Repeat patients`))
+          #sum(.$`Race - Black`))
+        )
 
 Expansion_data %>% 
   filter(GFR_index == 1) %>%
@@ -193,7 +207,7 @@ Expansion_data %>%
   summarise(n = n()) %>%
   ungroup() %>%
   mutate(per = n/sum(n))
-  
+
 Centre_diagnosis_summary <- Expansion_data %>%
   group_by(Centre, Diagnosis) %>%
   summarise(n = n()) %>% 
@@ -249,10 +263,17 @@ Variable_summary_by_patient_type <- Expansion_data %>%
   mutate(Creat = ifelse(Creatinine_type == "IDMS", NA, Creat)) %>%
   mutate("Creatinine (μmol/L)" = Creat*88.4,
          "Creatinine IDMS (μmol/L)" = Creat_IDMS*88.4) %>%
-  select("GFR (ml/min)" = GFR, "Creatinine (μmol/L)", "Creatinine (mg/dL)" = Creat,
-         "Creatinine IDMS (μmol/L)", "Creatinine IDMS (mg/dL)" = Creat_IDMS,
-         "Age (years)" = Age, "Height (cm)" = Ht, "Weight (kg)" = Wt, "BSA (m2)" = BSA, Patient_type) %>%
-  mutate(Patient_type = ifelse(Patient_type %in% c("Misc","Donor"), "Non_cancer", Patient_type)) %>%
+  select("GFR (ml/min)" = GFR,
+         "Creatinine (μmol/L)",
+         "Creatinine (mg/dL)" = Creat,
+         "Creatinine IDMS (μmol/L)",
+         "Creatinine IDMS (mg/dL)" = Creat_IDMS,
+         "Age (years)" = Age,
+         "Height (cm)" = Ht,
+         "Weight (kg)" = Wt,
+         "BSA (m2)" = BSA, Patient_type) %>%
+  mutate(Patient_type = ifelse(Patient_type %in% c("Misc","Donor"),
+                               "Non_cancer", Patient_type)) %>%
   split(f = .$Patient_type) %>%
   lapply(function(x) select(x, -Patient_type)) %>%
   lapply(FUN = dplyr_summary) %>%
@@ -323,7 +344,8 @@ write_excel_csv(Samples_per_centre_all, path = file.path(fig_export_dir, "Table1
 # 
 # kable(Centre_diagnosis_summary, caption = "Number of patient from each centre with a given diagnosis")
 
-table <- c(list("All data" = Summary_variables), Summary_variables_by_centre) %>% 
+table <- c(list("All data" = Summary_variables),
+           Summary_variables_by_centre) %>% 
   lapply(FUN = function(df){df %>% format(digits = 2, drop0trailing = TRUE) %>% t()}) %>%
   do.call("rbind", .) 
 colnames(table) <- c("Mean", "SD", "Minimim", "Q1", "Median", "Q3", "Maximum")
@@ -331,13 +353,13 @@ table <- table[-16,]
 
 table %>%  
   kable("latex", align = "r", longtable = T, booktabs = T, 
-      caption = "\\label{tab:summary_centr}Summary statistics (mean, standard deviation, minimum, lower quartile, median, upper quartile and maximum) for GFR, creatinine (non-IDMS), creatinine (IDMS), age, height, weight and body surface area. Statistics are shown for all data and from data from each centre separately.") %>%
+        caption = "\\label{tab:summary_centr}Summary statistics (mean, standard deviation, minimum, lower quartile, median, upper quartile and maximum) for GFR, creatinine (non-IDMS), creatinine (IDMS), age, height, weight and body surface area. Statistics are shown for all data and from data from each centre separately.") %>%
   kable_styling(latex_options = c("repeat_header")) %>%
   kableExtra::group_rows("All data", 1, 7, latex_gap_space = "0.6em", hline_after = T) %>%
   kableExtra::group_rows("Cambridge", 8, 14, latex_gap_space = "0.6em", hline_after = T) %>%
   kableExtra::group_rows("Gothenburg", 15, 20, latex_gap_space = "0.6em", hline_after = T) %>%
   kableExtra::group_rows("Manchester", 21, 27, latex_gap_space = "0.6em", hline_after = T) 
-  
+
 
 Samples_per_centre_all %>%
   mutate_at(.vars = vars(-1), .funs = funs(as.numeric(.))) %>%
@@ -347,10 +369,10 @@ Samples_per_centre_all %>%
   as.data.frame() %>%
   rownames_to_column(" ") %>%
   # mutate_at(.vars = vars(-1), .funs = funs(as.numeric(.))) %>%
-  as.tibble() %>%
+  as_tibble() %>%
   bind_rows(Centre_diagnosis_summary %>% rename(" " = Diagnosis) %>% as.data.frame()) %>%
   kable("latex", align = "r", longtable = T, booktabs = T, 
-      caption = "\\label{tab:summary_categorical}Number of patients in different catogorical groups for each of the different datasets.") %>%
+        caption = "\\label{tab:summary_categorical}Number of patients in different catogorical groups for each of the different datasets.") %>%
   kable_styling(latex_options = c("repeat_header")) %>%
   kableExtra::group_rows("General", 1, 9, latex_gap_space = "0.6em", hline_after = T) %>%
   kableExtra::group_rows("Diagnosis", 10, 34, latex_gap_space = "0.6em", hline_after = T)  
@@ -370,16 +392,16 @@ my_comparisons <- list( c("Cambridge", "Gothenburg"), c("Manchester", "Gothenbur
 Boxplots_variables <- Expansion_data %>% 
   bind_rows(data.frame(Centre = "Gothenburg", Creat = rep(NA, 100), Creatinine_type = "Non_IDMS")) %>%
   mutate(Centre = factor(Centre, levels  = c("Cambridge", 
-                                     "Manchester", "Gothenburg"))) %>%
+                                             "Manchester", "Gothenburg"))) %>%
   filter(Creatinine_type %in% c("IDMS", "Non_IDMS")) %>%
   mutate(Creat_IDMS = ifelse(Creatinine_type == "IDMS", 
                              Creat, NA)) %>%
   mutate(Creat = ifelse(Creatinine_type == "IDMS", 
-                                      NA, Creat)) %>%
+                        NA, Creat)) %>%
   mutate("non-IDMS log(SCr)" = log(Creat)) %>%
   mutate("IDMS log(SCr)" = log(Creat_IDMS)) %>%
   select("GFR" = GFR, "non-IDMS log(SCr)", 
-        "IDMS log(SCr)", Age, 
+         "IDMS log(SCr)", Age, 
          Ht, Wt, "BSA" = BSA, Centre) %>% 
   gather(key = variable, value = value, -Centre) %>%
   filter(!is.na(value)) %>%
@@ -387,8 +409,8 @@ Boxplots_variables <- Expansion_data %>%
                                                 "non-IDMS log(SCr)", "Age", 
                                                 "BSA", "Ht", "Wt"), 
                            labels = c("GFR [ml/min]",  "IDMS log(SCr)",
-                                                "non-IDMS log(SCr)", "Age [years]", 
-                                                "BSA [m\u00B2]", "Height [cm]", "Weight [kg]"))) %>%
+                                      "non-IDMS log(SCr)", "Age [years]", 
+                                      "BSA [m\u00B2]", "Height [cm]", "Weight [kg]"))) %>%
   ggplot(aes(y = value, x = Centre, fill = Centre)) + 
   geom_boxplot(position = "dodge", width = .9) + 
   facet_wrap(~variable, scale = "free_y", nrow = 2) +
@@ -407,7 +429,7 @@ Boxplots_variables <- Expansion_data %>%
                      method = "t.test") +
   stat_compare_means(comparisons = list(c("Cambridge", "Manchester")), 
                      method = "t.test") 
-  
+
 Boxplots_variables
 
 
@@ -417,8 +439,8 @@ In Figure \ref{fig:diagnosis_boxplot} we again display the data using boxplots b
 
 ```{r PLOT_data_characteristics_2, echo=F, fig.width=9, fig.height=7, fig.cap = "\\label{fig:diagnosis_boxplot}Boxplot of the continuous variables split by disease diagnosis. Boxplots are ordered by number the number of patients, with the diagnosis with the most patients on the left. Creatinine has been log transfomed and split into IDMS and non-IDMS. Only diagnosis with more than 50 patients were included."}
 tol12qualitative=c("#332288", "#6699CC", "#88CCEE", "#44AA99", "#117733",
-                    "#999933", "#DDCC77", "#661100", "#CC6677", "#AA4466",
-                    "#882255", "#AA4499")
+                   "#999933", "#DDCC77", "#661100", "#CC6677", "#AA4466",
+                   "#882255", "#AA4499")
 
 
 Boxplots_diagnosis <- Expansion_data %>% 
@@ -430,25 +452,25 @@ Boxplots_diagnosis <- Expansion_data %>%
   mutate("non-IDMS log(SCr)" = log(Creat)) %>%
   mutate("IDMS log(SCr)" = log(Creat_IDMS)) %>%
   select("GFR" = GFR, "non-IDMS log(SCr)", 
-        "IDMS log(SCr)", Age, 
+         "IDMS log(SCr)", Age, 
          Ht, Wt, "BSA" = BSA, Diagnosis) %>% 
   filter(Diagnosis %in% c("Gynae", "Hematologic", "GCT", "Thoracic", 
                           "Gastroeosophageal", "Head and Neck", "Bladder/TCC", 
                           "Sarcoma", "Endometrial", "Transplant", 
                           "Uterus/Cervix", "Breast", "Kidney donor", "Melanoma")) %>%
   mutate(Diagnosis = factor(Diagnosis, 
-                         levels = c("Gynae", "Hematologic", "GCT", "Thoracic", 
-                          "Gastroeosophageal", "Head and Neck", "Bladder/TCC", 
-                          "Sarcoma", "Endometrial", "Transplant", 
-                          "Uterus/Cervix", "Breast", "Kidney donor", "Melanoma"))) %>%
+                            levels = c("Gynae", "Hematologic", "GCT", "Thoracic", 
+                                       "Gastroeosophageal", "Head and Neck", "Bladder/TCC", 
+                                       "Sarcoma", "Endometrial", "Transplant", 
+                                       "Uterus/Cervix", "Breast", "Kidney donor", "Melanoma"))) %>%
   gather(key = variable, value = value, -Diagnosis) %>%
   filter(!is.na(value)) %>%
   mutate(variable = factor(variable, levels = c("GFR",  "IDMS log(SCr)",
                                                 "non-IDMS log(SCr)", "Age", 
                                                 "BSA", "Ht", "Wt"), 
                            labels = c("GFR [ml/min]",  "IDMS log(SCr)",
-                                                "non-IDMS log(SCr)", "Age [years]", 
-                                                "BSA [m\u00B2]", "Height [cm]", "Weight [kg]"))) %>%
+                                      "non-IDMS log(SCr)", "Age [years]", 
+                                      "BSA [m\u00B2]", "Height [cm]", "Weight [kg]"))) %>%
   ggplot(aes(y = value, x = Diagnosis, fill = Diagnosis)) + 
   geom_boxplot(position = "dodge", width = .9) + 
   facet_wrap(~variable, scale = "free_y", nrow = 2) + 
@@ -481,16 +503,16 @@ Boxplots_ethnicity <- Expansion_data %>%
   filter(!is.na(Ethnicity)) %>%
   mutate(log_Creat = log(Creat)) %>%
   mutate(log_Creat_IDMS = ifelse(Creatinine_type == "IDMS", 
-                             log_Creat, NA)) %>%
+                                 log_Creat, NA)) %>%
   mutate(log_Creat = ifelse(Creatinine_type == "IDMS", 
-                        NA, log_Creat)) %>% 
+                            NA, log_Creat)) %>% 
   select(Age, GFR, BSA, log_Creat, log_Creat_IDMS, Centre, Ethnicity) %>%
   gather(key = variable, value = value, -Centre, -Ethnicity) %>%
   mutate(variable = factor(variable, levels = c("GFR", "log_Creat_IDMS", "log_Creat", 
                                                 "Age", "BSA"),
                            labels = c("GFR [ml/min]",  "IDMS log(SCr)",
-                                                "non-IDMS log(SCr)", "Age [years]", 
-                                                "BSA [m\u00B2]"))) %>%
+                                      "non-IDMS log(SCr)", "Age [years]", 
+                                      "BSA [m\u00B2]"))) %>%
   ggplot(aes(y = value, fill = Ethnicity, x = Ethnicity)) +
   geom_boxplot(position = "dodge", width = 1, notch = F, outlier.shape = NA) +
   geom_jitter(aes(alpha = Ethnicity), width = .3) +
@@ -563,7 +585,7 @@ p1 <- df_mixed %>%
                      # bracket.size = 0.3, 
                      inherit.aes = F, 
                      label.y = c(4.6, 5.5, 6.8) 
-                     ) +
+  ) +
   ggplot_theme() + 
   ylab("SCr") +
   scale_fill_manual(values = c(Cambridge = "#5b4e9f", Melbourne = "#88CCEE", Glasgow = "#44AA99", 
@@ -587,7 +609,7 @@ p1 <- df_mixed %>%
   # ylim(-1.5, 2.5) + 
   coord_trans(y = "log10", limy = c(exp(-1.8), exp(2.15))) +
   scale_y_continuous(breaks= c(0.3, 0.6, 1.2, 2.4, 4.8)) 
-  # scale_y_continuous(breaks= c(0.3, 0.6, 1.2, 2.4, 4.8), trans = "log10")
+# scale_y_continuous(breaks= c(0.3, 0.6, 1.2, 2.4, 4.8), trans = "log10")
 p1
 
 legend1 = g_legend(p1)
@@ -873,8 +895,8 @@ We chose only to use the centres where we had at least some IDMS data (Cambridge
 # Expansion_data_fit 
 
 model_formula_interaction = sqrt_GFR ~ Age + BSA + Sex + Creatinine_type:log_Creat +
-    Creatinine_type:I(log_Creat^2) + Creatinine_type:I(log_Creat^3) +
-    Age:BSA + Age:Sex + Creatinine_type 
+  Creatinine_type:I(log_Creat^2) + Creatinine_type:I(log_Creat^3) +
+  Age:BSA + Age:Sex + Creatinine_type 
 Refit_CamGFR <- lm(model_formula_interaction,
                    data = Expansion_data_fit)
 summary(Refit_CamGFR)
@@ -903,10 +925,10 @@ The estimated coefficients are shown in Table S... from fitting the model using 
 Old_param = summary(Addenbrooks_sqrt_model)$coef[,1:2] 
 colnames(Old_param) = c("Original", "Original se")
 rownames(Old_param)[c(3,4,6,7,9)] <- c("Creatinine_typeNon_IDMS:log_Creat", 
-                                    "BSA",
-                                    "Creatinine_typeNon_IDMS:I(log_Creat^3)",
-                                    "Creatinine_typeNon_IDMS:I(log_Creat^2)", 
-                                    "Age:BSA")
+                                       "BSA",
+                                       "Creatinine_typeNon_IDMS:I(log_Creat^3)",
+                                       "Creatinine_typeNon_IDMS:I(log_Creat^2)", 
+                                       "Age:BSA")
 Old_param = Old_param %>% 
   as.data.frame() %>% rownames_to_column("Coefficient")
 New_param = summary(Refit_CamGFR)$coef[,1:2] %>% as.data.frame()
@@ -920,9 +942,9 @@ coefficient_table <- left_join(New_param, Old_param, by = "Coefficient") %>%
 
 coefficient_table <- coefficient_table %>%
   mutate(Coefficient = c("$\\beta_0$", "$\\beta_1$", "$\\beta_2$", "$\\beta_3$", 
-                      "$\\beta_4$", "$\\beta_8$",  "$\\beta_5$", "$\\beta_9$", 
-                      "$\\beta_6$", "$\\beta_{10}$", "$\\beta_7$", 
-                      "$\\beta_{11}$", "$\\beta_{12}$")) %>%
+                         "$\\beta_4$", "$\\beta_8$",  "$\\beta_5$", "$\\beta_9$", 
+                         "$\\beta_6$", "$\\beta_{10}$", "$\\beta_7$", 
+                         "$\\beta_{11}$", "$\\beta_{12}$")) %>%
   arrange(c(0, 1, 2, 3, 4, 8, 5, 9, 6, 10, 7, 11, 12)) 
 
 
@@ -941,9 +963,9 @@ summary(Refit_CamGFR)$coef %>%
   as.data.frame() %>%
   rownames_to_column(var = "Variable") %>%
   mutate(Coefficient = c("$\\beta_0$", "$\\beta_1$", "$\\beta_2$", "$\\beta_3$", 
-                      "$\\beta_4$", "$\\beta_8$",  "$\\beta_5$", "$\\beta_9$", 
-                      "$\\beta_6$", "$\\beta_{10}$", "$\\beta_7$", 
-                      "$\\beta_{11}$", "$\\beta_{12}$")) %>%
+                         "$\\beta_4$", "$\\beta_8$",  "$\\beta_5$", "$\\beta_9$", 
+                         "$\\beta_6$", "$\\beta_{10}$", "$\\beta_7$", 
+                         "$\\beta_{11}$", "$\\beta_{12}$")) %>%
   arrange(c(0, 1, 2, 3, 4, 8, 5, 9, 6, 10, 7, 11, 12)) %>% 
   select(Variable, Coefficient, everything()) %>%
   mutate(Variable = c("$(Intercept)$", "$Age$", "$BSA$", "$Sex_M$", "$Scr_{IDMS}$",
@@ -1013,7 +1035,7 @@ p3 <- dat %>%
   xlab("Model residuals") +
   ggplot_theme() + 
   theme(plot.margin = margin(4, 8, 2, 2, "mm"))
-  
+
 
 
 left_plot <- plot_grid(p2, p3, labels = c("A", "B"), align = "v", rel_heights = c(1,1), ncol = 1)
@@ -1034,9 +1056,9 @@ Finally, we examine the fitted relationship between the log of the serum creatin
 creat_func <- function(x, creat_type){ 
   coef =  Refit_CamGFR$coefficients
   if(creat_type == "IDMS") 
-         coef[1] + coef[6]*x + coef[8]*x^2 + coef[10]*x^3
+    coef[1] + coef[6]*x + coef[8]*x^2 + coef[10]*x^3
   else
-         coef[1] + coef[5] + coef[7]*x + coef[9]*x^2 + coef[11]*x^3
+    coef[1] + coef[5] + coef[7]*x + coef[9]*x^2 + coef[11]*x^3
 }
 creat_func_original <- function(x){ 
   coef =  coef(Addenbrooks_sqrt_model)
@@ -1103,8 +1125,8 @@ Fitted_df <- Expansion_data %>%
   gather(key = equation, value = fitted, -GFR, -Centre, -Creatinine_type) %>%
   mutate(resid = GFR - fitted) %>%
   bind_rows(mutate(., Centre = "All"))
-  
-  
+
+
 Fitted_df %>% group_by(equation, Creatinine_type, Centre) %>%
   Statistic_summary_withP20(R = 2000) %>%
   Clean_output_table() %>%
@@ -1151,7 +1173,7 @@ plot_data <- df %>%
   left_join(df %>% do(my_normal_boot(.$Creat, func = median, name = "creat"))) %>%
   left_join(df %>% do(my_normal_boot(.$GFR, func = median, name = "GFR"))) 
 
-  
+
 
 p1 = plot_data %>% 
   ggplot(aes(x = interaction(Creatinine_method, Creatinine_type, sep = " "), 
@@ -1180,7 +1202,7 @@ p2 = plot_data %>%
   geom_errorbar(aes(ymin = creat_lwr, ymax = creat_upr, colour = Centre), 
                 position= position_dodge(width = .5), width = 0, size = 1) +
   geom_point( aes(colour =Centre),
-             position= position_dodge(width = .5), size = rel(2)) +
+              position= position_dodge(width = .5), size = rel(2)) +
   scale_colour_manual(values = tol3qualitative) + 
   ggplot_theme() + 
   ylab("median log(Creat)") + 
@@ -1323,14 +1345,14 @@ cormat <- Expansion_data_fit %>%
 
 # Get lower triangle of the correlation matrix
 get_lower_tri<-function(cormat){
-    cormat[upper.tri(cormat)] <- NA
-    return(cormat)
-  }
+  cormat[upper.tri(cormat)] <- NA
+  return(cormat)
+}
 # Get upper triangle of the correlation matrix
 get_upper_tri <- function(cormat){
-    cormat[lower.tri(cormat)]<- NA
-    return(cormat)
-  }
+  cormat[lower.tri(cormat)]<- NA
+  return(cormat)
+}
 
 upper_tri <- get_upper_tri(cormat)
 
@@ -1338,16 +1360,16 @@ library(reshape2)
 melted_cormat <- melt(upper_tri, na.rm = TRUE)
 
 p <- ggplot(data = melted_cormat, aes(Var2, Var1, fill = value))+
- geom_tile(color = "white")+
- scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
-   midpoint = 0, limit = c(-1,1), space = "Lab", 
-   name="Pearson\nCorrelation") +
+  geom_tile(color = "white")+
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                       midpoint = 0, limit = c(-1,1), space = "Lab", 
+                       name="Pearson\nCorrelation") +
   theme_minimal()+ 
- theme(axis.text.x = element_text(angle = 45, vjust = 1, 
-    size = 12, hjust = 1)) +
- coord_fixed() + 
- geom_text(aes(Var2, Var1, label = value), color = "black", size = 4) +
- theme(
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+                                   size = 12, hjust = 1)) +
+  coord_fixed() + 
+  geom_text(aes(Var2, Var1, label = value), color = "black", size = 4) +
+  theme(
     axis.title.x = element_blank(),
     axis.title.y = element_blank(),
     panel.grid.major = element_blank(),
@@ -1357,8 +1379,8 @@ p <- ggplot(data = melted_cormat, aes(Var2, Var1, fill = value))+
     legend.justification = c(1, 0),
     legend.position = c(0.6, 0.7),
     legend.direction = "horizontal")+
-    guides(fill = guide_colorbar(barwidth = 7, barheight = 1,
-                title.position = "top", title.hjust = 0.5))
+  guides(fill = guide_colorbar(barwidth = 7, barheight = 1,
+                               title.position = "top", title.hjust = 0.5))
 
 p
 
@@ -1377,19 +1399,19 @@ Scatter_variables <- Expansion_data_fit %>%
   mutate(Creat_IDMS = ifelse(Creatinine_type == "IDMS", 
                              Creat, NA)) %>%
   mutate(Creat = ifelse(Creatinine_type == "IDMS", 
-                                      NA, Creat)) %>%
+                        NA, Creat)) %>%
   mutate("non-IDMS log(SCr)" = log(Creat)) %>%
   mutate("IDMS log(SCr)" = log(Creat_IDMS)) %>%
   mutate(GFR = sqrt(GFR)) %>%
   select("GFR" = GFR, "non-IDMS log(SCr)", 
-        "IDMS log(SCr)", Age, 
+         "IDMS log(SCr)", Age, 
          Ht, Wt, 
-        "BSA" = BSA, Centre) %>% 
+         "BSA" = BSA, Centre) %>% 
   gather(key = variable, value = value, -Centre, -GFR) %>%
   mutate(variable = factor(variable, levels = c("Age", "BSA", 
                                                 "Ht", "Wt", 
                                                 "non-IDMS log(SCr)", 
-                                      "IDMS log(SCr)"))) %>%
+                                                "IDMS log(SCr)"))) %>%
   filter(!is.na(value)) %>%
   ggplot(aes(y = GFR, x = value, colour = Centre)) + 
   geom_point(alpha = .5) + 
@@ -1425,7 +1447,7 @@ Scatter_variables_creattype <- Expansion_data_fit %>%
   mutate(Creat_IDMS = ifelse(Creatinine_type == "IDMS", 
                              Creat, NA)) %>%
   mutate(Creat = ifelse(Creatinine_type == "IDMS", 
-                                      NA, Creat)) %>%
+                        NA, Creat)) %>%
   mutate(GFR = sqrt(GFR)) %>%
   select("GFR" = GFR, Age, 
          Ht, Wt, "BSA" = BSA, Creatinine_type) %>% 
@@ -1482,7 +1504,7 @@ ggsave(paste0(fig_export_dir, "Creat_GFR_ethnicity_plot.pdf"),
 
 ```{r Setup_full_null_models, echo = F}
 form <- sqrt_GFR ~ (Age + Sex + Ht + Wt + BSA + log_Creat:Creatinine_type)^2 +
-   I(log_Creat^2):Creatinine_type + I(log_Creat^3):Creatinine_type +
+  I(log_Creat^2):Creatinine_type + I(log_Creat^3):Creatinine_type +
   Creatinine_type
 full <- glm(form, data = as.data.frame(Expansion_data_fit), 
             family = gaussian(link = 'identity'), x=T, y=T)
@@ -1543,7 +1565,7 @@ formula
 
 Leave_out_n_model <- lm(formula = formula, 
                         data = Expansion_data_fit)
-                    
+
 kable(summary(Leave_out_n_model)$coef, caption = "\\label{tab:coef_lon}Summary of ceofficents for leave-out-n model")
 
 ```
@@ -1572,67 +1594,67 @@ Leave_out_one_model <- lm(formula(Leave_out_one_model),
 ```{r compare_coefficents, echo = F}
 
 Refit_CamGFR_2 <- lm(sqrt_GFR ~ Creatinine_type + BSA + Age  + Sex + 
-                     Creatinine_type*log_Creat +
-                     Creatinine_type*I(log_Creat^2) + 
-                     Creatinine_type*I(log_Creat^3) + 
-                     BSA:Age + Age:Sex, 
-                   data = Expansion_data_fit)
-  
+                       Creatinine_type*log_Creat +
+                       Creatinine_type*I(log_Creat^2) + 
+                       Creatinine_type*I(log_Creat^3) + 
+                       BSA:Age + Age:Sex, 
+                     data = Expansion_data_fit)
+
 BIC_model_2 <- lm(sqrt_GFR ~  BSA + Age + Sex + Creatinine_type + 
                     Ht + Wt +
-                  Creatinine_type*log_Creat + 
-                  Creatinine_type*I(log_Creat^2) + 
-                  Creatinine_type*I(log_Creat^3) + 
+                    Creatinine_type*log_Creat + 
+                    Creatinine_type*I(log_Creat^2) + 
+                    Creatinine_type*I(log_Creat^3) + 
                     BSA:Age + BSA:Sex + BSA:Ht + Age:Sex, 
-                data = Expansion_data_fit)
+                  data = Expansion_data_fit)
 
 Leave_out_n_model_2 <- lm(sqrt_GFR ~ Creatinine_type + BSA + Age + Sex + 
                             Ht + Wt + Creatinine_type*log_Creat + 
                             Creatinine_type*I(log_Creat^2) + 
                             Creatinine_type*I(log_Creat^3) + 
                             BSA:Sex + BSA:Age + BSA:Ht + Age:Ht, 
-                        data = Expansion_data_fit)
+                          data = Expansion_data_fit)
 
 Leave_out_one_model_2 <- lm(sqrt_GFR ~ Creatinine_type + BSA + Age + Sex + 
                               Ht + Wt + Creatinine_type*log_Creat + 
                               Creatinine_type*I(log_Creat^2) + 
                               Creatinine_type*I(log_Creat^3) + 
                               BSA:Sex + BSA:Age + BSA:Ht, 
-                          data = Expansion_data_fit)
+                            data = Expansion_data_fit)
 names = c("Intercept",  "BSA","Age", expression("Sex"["M"]),  
           expression("Scr"["IDMS"]),
-         "Height", "Weight",
-         "log(Scr)", 
-         expression(log("Scr")^2),
-         expression(log("Scr")^3),
-        expression("Scr"["IDMS"]*log("Scr")),
-        expression("Scr"["IDMS"]*log("Scr")^2),
-        expression("Scr"["IDMS"]*log("Scr")^3),
-        expression("Age"*"BSA"), 
-        expression("BSA"*"Sex"["M"]), expression("BSA"*"Height"), 
-        expression("Age"*"Sex"["M"]), expression("Age"*"Height"))
+          "Height", "Weight",
+          "log(Scr)", 
+          expression(log("Scr")^2),
+          expression(log("Scr")^3),
+          expression("Scr"["IDMS"]*log("Scr")),
+          expression("Scr"["IDMS"]*log("Scr")^2),
+          expression("Scr"["IDMS"]*log("Scr")^3),
+          expression("Age"*"BSA"), 
+          expression("BSA"*"Sex"["M"]), expression("BSA"*"Height"), 
+          expression("Age"*"Sex"["M"]), expression("Age"*"Height"))
 
 coef = c("(Intercept)", "BSA", "Age", "SexM", "Creatinine_typeIDMS", "Ht", "Wt", "log_Creat", 
          "I(log_Creat^2)", "I(log_Creat^3)", 
          "Creatinine_typeIDMS:log_Creat", "Creatinine_typeIDMS:I(log_Creat^2)", 
          "Creatinine_typeIDMS:I(log_Creat^3)", "BSA:Age", "BSA:SexM", "BSA:Ht", 
-        "Age:SexM", "Age:Ht")
+         "Age:SexM", "Age:Ht")
 
 groups = list(pane_1 = c("BSA"), pane_2 = c("SexM", "log_Creat","I(log_Creat^2)", "I(log_Creat^3)", "BSA:SexM"), pane_3 = c("Creatinine_typeIDMS", "Creatinine_typeIDMS:log_Creat", "Creatinine_typeIDMS:I(log_Creat^2)", "Creatinine_typeIDMS:I(log_Creat^3)"), pane_4 = c("Age", "Ht", "Wt", "BSA:Age", "BSA:SexM", "BSA:Ht", "Age:SexM", "Age:Ht"))
 
 Compare_coef_plot <- 
   plot_coefs(BIC_model_2, Leave_out_n_model_2, Leave_out_one_model_2,  Refit_CamGFR_2,
-           model.names = c("BIC", "Leave-out-n", "Leave-out-1", "Refit CamGFR"),
-           scale = F, point.shape = T, facet.rows = 4,
-           groups = groups, 
-           color.class = tol4qualitative)
+             model.names = c("BIC", "Leave-out-n", "Leave-out-1", "Refit CamGFR"),
+             scale = F, point.shape = T, facet.rows = 4,
+             groups = groups, 
+             color.class = tol4qualitative)
 Compare_coef_plot
 
 
 
 Compare_coef_plot <- Compare_coef_plot + 
   scale_y_discrete(breaks=coef,
-        labels=names)
+                   labels=names)
 
 
 
@@ -1640,14 +1662,14 @@ Compare_coef_plot <- Compare_coef_plot +
 
 func <- function(model, name){
   summary(model) %>% tidy() %>% as.data.frame() %>%
-  select(term, estimate, std.error) %>%
-  mutate(model = name)
+    select(term, estimate, std.error) %>%
+    mutate(model = name)
 }
 
 df <- bind_rows(func(Refit_CamGFR_2, "Refit CamGFR"), 
-          func(BIC_model_2, "BIC"), 
-          func(Leave_out_n_model_2, "Leave-out-n"), 
-          func(Leave_out_one_model_2, "Leave-one-out")) %>% 
+                func(BIC_model_2, "BIC"), 
+                func(Leave_out_n_model_2, "Leave-out-n"), 
+                func(Leave_out_one_model_2, "Leave-one-out")) %>% 
   mutate(term = factor(term, levels = rev(coef))) %>%
   mutate(conf_high = estimate + qnorm(0.975)*std.error, 
          conf_low = estimate - qnorm(0.975)*std.error) %>%
@@ -1667,12 +1689,12 @@ df <- bind_rows(func(Refit_CamGFR_2, "Refit CamGFR"),
 p <-  ggplot(df) + 
   geom_vline(xintercept = 0, linetype = "dashed") +
   ggstance::geom_linerangeh(aes(y = term, xmin = conf_low, 
-      xmax = conf_high, colour = model), 
-      position = ggstance::position_dodgev(height = 0.5)) + 
-   geom_point(aes(y = term, x = estimate, colour = model), 
-              fill = "white", 
-              size = 1, stroke = 1, shape = 21,  
-      position = ggstance::position_dodgev(height = 0.5)) + 
+                                xmax = conf_high, colour = model), 
+                            position = ggstance::position_dodgev(height = 0.5)) + 
+  geom_point(aes(y = term, x = estimate, colour = model), 
+             fill = "white", 
+             size = 1, stroke = 1, shape = 21,  
+             position = ggstance::position_dodgev(height = 0.5)) + 
   scale_color_manual(values = tol4qualitative) + 
   facet_wrap(~facet, scales = "free", nrow = 4) + 
   ggplot_theme() + 
@@ -1680,8 +1702,8 @@ p <-  ggplot(df) +
         axis.text = element_text(size = rel(1)),
         strip.text = element_blank(), 
         axis.title.y = element_blank()) + 
-    scale_y_discrete(breaks=coef,
-        labels=names) + 
+  scale_y_discrete(breaks=coef,
+                   labels=names) + 
   xlab("Estiamted parameter value")
 p
 library(grid)
@@ -1690,7 +1712,7 @@ gt = ggplot_gtable(ggplot_build(p))
 gt$heights[8] = 2*gt$heights[8]
 gt$heights[13] = 9*gt$heights[13]
 gt$heights[18] = 7*gt$heights[18]
-   
+
 
 ggsave(paste0(fig_export_dir, "Compare_coef_models.pdf"), 
        plot = grid.draw(gt), 
@@ -1704,7 +1726,7 @@ ggsave(paste0(fig_export_dir, "Compare_coef_models.pdf"),
 
 
 <!-- Need to change -->
- 
+
 We further examine the fit of the BIC model in Figure \ref{fig:resid_BIC}, where we observe a very similar Figure \ref{fig:resid_reffited} for the refitted model. Hence, the model also fits the data well. 
 
 The summary of leave-out-n model coefficients are shown in Table \ref{tab:coef_lon}. Here we see that the only variables which are not significantly different from 0 are Ht and the cubic term for IDMS creatinine. The height variable has interaction with other variables and hence it does not matter if it is insignificant. 
@@ -1765,7 +1787,7 @@ p2 <- Expansion_data_fit %>%
   scale_color_manual(values =  tol2qualitative) 
 
 p3 <- Expansion_data_fit %>%
-    # mutate(BSA_group = cut(BSA, c(0, 1.54, 1.71, 1.92, 2.11, 3))) %>%
+  # mutate(BSA_group = cut(BSA, c(0, 1.54, 1.71, 1.92, 2.11, 3))) %>%
   mutate(Ht_group = cut(Ht, c(136, 144, 158, 179, 193, 200))) %>%
   ggplot(aes(x = BSA, y = sqrt(GFR))) + 
   geom_point(alpha = .5, aes(colour = Ht_group)) + 
@@ -1823,7 +1845,7 @@ creat_func <- function(x, creat_type){
          coef["Creatinine_typeIDMS:log_Creat"]*x +   
            coef["Creatinine_typeIDMS:I(log_Creat^2)"]*x^2 + 
            coef["Creatinine_typeIDMS:I(log_Creat^3)"]*x^3,
-          coef["Creatinine_typeNon_IDMS:log_Creat"]*x + #coef["Creatinine_typeNon_IDMS"] +
+         coef["Creatinine_typeNon_IDMS:log_Creat"]*x + #coef["Creatinine_typeNon_IDMS"] +
            coef["Creatinine_typeNon_IDMS:I(log_Creat^2)"]*x^2 +
            coef["Creatinine_typeNon_IDMS:I(log_Creat^3)"]*x^3)
 }
@@ -1835,7 +1857,7 @@ SFigure4_cubic_Creat_fit <- data.frame(x = x, y = creat_func(x, y), type = y) %>
   geom_line() +
   ggplot_theme() + 
   ylab("Effect of log(SCr)") + xlab("log(SCr)")
-  # theme(legend.position = "none")
+# theme(legend.position = "none")
 SFigure4_cubic_Creat_fit
 ```
 
@@ -1856,7 +1878,7 @@ Spline_model_creat <-
        log_Creat_nonIDMS + Age:Sex + BSA:Age, 
      data = Expansion_data_fit) %>%
   segmented(obj = .,  seg.Z = ~log_Creat_IDMS + log_Creat_nonIDMS, 
-             psi = list("log_Creat_IDMS" = c(-0.1, .5), 
+            psi = list("log_Creat_IDMS" = c(-0.1, .5), 
                        "log_Creat_nonIDMS" = c(-0.1, .5)),
             control = seg.control(toll = 1e-06, it.max = 100, h = 0.1))
 
@@ -1866,7 +1888,7 @@ Spline_model_age_creat <-
        log_Creat_nonIDMS + Age:Sex + BSA:Age, 
      data = Expansion_data_fit) %>%
   segmented(obj = .,  seg.Z = ~Age + log_Creat_IDMS + log_Creat_nonIDMS, 
-             psi = list("Age" = 40, "log_Creat_IDMS" = c(-0.1, .5), 
+            psi = list("Age" = 40, "log_Creat_IDMS" = c(-0.1, .5), 
                        "log_Creat_nonIDMS" = c(-0.1, .5)), 
             control = seg.control(toll = 1e-06, it.max = 100, h = 0.1))
 Spline_model_age_creat
@@ -1877,7 +1899,7 @@ Spline_model_age_creat_NoIDMS <-
        Age:Sex + BSA:Age, 
      data = Expansion_data_fit) %>%
   segmented(obj = .,  seg.Z = ~Age + log_Creat, 
-             psi = list("Age" = 40, "log_Creat" = c(-0.1, .5)), 
+            psi = list("Age" = 40, "log_Creat" = c(-0.1, .5)), 
             control = seg.control(toll = 1e-06, it.max = 100, h = 0.1))
 
 
@@ -1893,7 +1915,7 @@ creat_IDMS_func <- function(x){
   coef = Spline_model_age_creat$coefficients
   psi = Spline_model_age_creat$psi[ ,"Est."]
   coef[["Creatinine_typeIDMS"]] + 
-  coef[["log_Creat_IDMS"]]*x + 
+    coef[["log_Creat_IDMS"]]*x + 
     coef[["U1.log_Creat_IDMS"]]*(x > psi["psi1.log_Creat_IDMS"])*(x - psi["psi1.log_Creat_IDMS"]) + 
     coef[["U2.log_Creat_IDMS"]]*(x > psi["psi2.log_Creat_IDMS"])*(x - psi["psi2.log_Creat_IDMS"])
 }
@@ -1975,7 +1997,7 @@ p3 <- Expansion_data_fit %>%
   geom_line(data = filter(Expansion_data_fit, Creatinine_type == "IDMS"),
             aes(x = log(Creat), y = creat_func(log(Creat), "IDMS"), colour = "IDMS")) + 
   geom_line(data = filter(Expansion_data_fit, Creatinine_type == "Non_IDMS"),
-    aes(x = log(Creat), y = creat_func(log(Creat), "non-IDMS"), colour = "non-IDMS")) + 
+            aes(x = log(Creat), y = creat_func(log(Creat), "non-IDMS"), colour = "non-IDMS")) + 
   # geom_line(aes(y = creat_func(log(Creat), Creatinine_type), colour = Creatinine_type)) +
   geom_rug(aes(x = log(Creat), colour = Creatinine_type), alpha =.2) + 
   ggplot_theme() + ylab("Effect of log(SCr)") + xlab("log(SCr)") +
@@ -2019,7 +2041,7 @@ a$log_Creat_IDMS
 a$log_Creat_nonIDMS
 b = a %>% 
   mutate(Creatinine_type = "IDMS", 
-                 log_Creat_IDMS = log_Creat_nonIDMS) %>%
+         log_Creat_IDMS = log_Creat_nonIDMS) %>%
   mutate(log_Creat_nonIDMS = 0)
 b$log_Creat_IDMS
 b$log_Creat_nonIDMS
@@ -2079,7 +2101,7 @@ We next compared the currently published models which are suitable for IDMS data
 
 Clean_output_table <- function(table){
   table %>% 
-   ungroup() %>%
+    ungroup() %>%
     mutate_at(.vars = vars(median_fitted, starts_with("RMSE"), starts_with("IQR"),
                            starts_with("median")), 
               funs(round(., 2))) %>%
@@ -2125,7 +2147,7 @@ Valitaion_fitted_df <- Valitaion_fitted_df_all %>%
                                                 "LM","CKD-EPI", "FAS", "MDRD"),
                            labels = c("CamGFR v2", "CamGFR v1", "LM", "CKD-EPI", 
                                       "FAS", "MDRD")))
-  
+
 Results_all <- Valitaion_fitted_df_all %>%
   group_by(equation) %>%
   Statistic_summary_withP20_both() %>%
@@ -2213,7 +2235,7 @@ Results_CreatType_dose %>%
   select(Creatinine_type, median, RMSE, IQR, P20_dose, P20_dose_lwr, P20_dose_upr) 
 
 mround <- function(x,base){
-        base*round(x/base)
+  base*round(x/base)
 }
 
 equal_func <- function(x){
@@ -2231,7 +2253,7 @@ df <- Valitaion_fitted_df %>%
   mutate(diff = GFR_dose - fitted_dose) %>% 
   group_by(equation) %>%
   filter(!(equation %in% c("Leave_out_1_model", "Spline_model_age_creat")))
-  
+
 
 df %>% 
   summarise(n = n(), 
@@ -2240,7 +2262,7 @@ df %>%
             below = sum(fitted_dose < GFR_dose)/n()) %>%
   bind_cols(
     df %>% do(my_normal_boot(.$diff, func = equal_func, name = "Equal")) %>%
-    ungroup() %>% dplyr::select((ncol(.)-2):ncol(.))
+      ungroup() %>% dplyr::select((ncol(.)-2):ncol(.))
   ) %>%
   arrange(-equal) %>% 
   do(my_normal_boot(.$fitted/.$GFR, func = P20_opp, name = "P20")) 
@@ -2253,15 +2275,15 @@ df %>%
 
 Clean_results <- function(x){
   x %>%
-  mutate_if(is.double, funs(round(., 2))) %>%
-  mutate(RMSE = paste0(RMSE, " (", RMSE_lwr, ", ", RMSE_upr, ")")) %>%
-  mutate(median = paste0(median, " (", median_lwr, ", ", median_upr, ")")) %>%
-  mutate(IQR = paste0(IQR, " (", IQR_lwr, ", ", IQR_upr, ")")) %>%
-  mutate(P20 = paste0(P20, " (", P20_lwr, ", ", P20_upr, ")")) %>%
-  mutate(P20_dose = paste0(P20_dose, " (", P20_dose_lwr, ", ", P20_dose_upr, ")")) %>%
-  rename("Median eGFR" = median_fitted) %>%
-  select(-RMSE_lwr, -RMSE_upr, -median_lwr, -median_upr, -IQR_lwr, -IQR_upr, 
-         -P20_lwr, -P20_upr, -P20_dose_lwr, -P20_dose_upr) 
+    mutate_if(is.double, funs(round(., 2))) %>%
+    mutate(RMSE = paste0(RMSE, " (", RMSE_lwr, ", ", RMSE_upr, ")")) %>%
+    mutate(median = paste0(median, " (", median_lwr, ", ", median_upr, ")")) %>%
+    mutate(IQR = paste0(IQR, " (", IQR_lwr, ", ", IQR_upr, ")")) %>%
+    mutate(P20 = paste0(P20, " (", P20_lwr, ", ", P20_upr, ")")) %>%
+    mutate(P20_dose = paste0(P20_dose, " (", P20_dose_lwr, ", ", P20_dose_upr, ")")) %>%
+    rename("Median eGFR" = median_fitted) %>%
+    select(-RMSE_lwr, -RMSE_upr, -median_lwr, -median_upr, -IQR_lwr, -IQR_upr, 
+           -P20_lwr, -P20_upr, -P20_dose_lwr, -P20_dose_upr) 
 }
 
 Results <- Valitaion_fitted_df %>%
@@ -2292,7 +2314,7 @@ Results_Centre <- Valitaion_fitted_df %>%
   # select(-P20_dose, -P20_dose_lwr, -P20_dose_upr) %>%
   arrange(Centre, Creatinine_type, RMSE) 
 Clean_Results_Centre <- Clean_results(Results_Centre)
-  
+
 Results_Diagnosis <- Valitaion_fitted_df %>%
   group_by(equation, Diagnosis) %>%
   Statistic_summary_withP20_both() %>%
@@ -2335,7 +2357,7 @@ Results_BSA_Creattype <- Valitaion_fitted_df %>%
   # select(-P20_dose, -P20_dose_lwr, -P20_dose_upr) %>%
   ungroup() %>%
   arrange(Creatinine_type, BSA_cut, RMSE) 
-   
+
 Clean_Results_BSA_Creattype <- Clean_results(Results_BSA_Creattype)
 
 Results_Sex_Creattype <- Valitaion_fitted_df %>% 
@@ -2405,32 +2427,32 @@ Clean_Results_CreatType %>%
 Clean_Results_PatientType_Creattype %>%
   select(-P20) %>% rename("Dose P20" = P20_dose) %>% 
   write_csv(path = paste0(fig_export_dir, "/Results_by_patient-type.csv"))
-  
+
 Clean_Results_eGFR_Creattype %>%
   select(-P20) %>% rename("Dose P20" = P20_dose) %>% 
-    write_csv(path = paste0(fig_export_dir, "/Results_by_eGFR.csv"))
+  write_csv(path = paste0(fig_export_dir, "/Results_by_eGFR.csv"))
 
 Clean_Results_BSAadj_eGFR_Creattype %>%
-   select(-P20) %>% rename("Dose P20" = P20_dose) %>% 
-   write_csv(path = paste0(fig_export_dir, "/Results_by_BSAadjeGFR.csv"))
+  select(-P20) %>% rename("Dose P20" = P20_dose) %>% 
+  write_csv(path = paste0(fig_export_dir, "/Results_by_BSAadjeGFR.csv"))
 
 Clean_Results_BSAadj_eGFR_Creattype_on_BSAadj_eGFR_scale %>%
-   select(-P20) %>% rename("Dose P20" = P20_dose) %>% 
-   write_csv(path = paste0(fig_export_dir, "/Results_by_BSAadjeGFR_on_BSAadjeGFR_scale.csv"))
+  select(-P20) %>% rename("Dose P20" = P20_dose) %>% 
+  write_csv(path = paste0(fig_export_dir, "/Results_by_BSAadjeGFR_on_BSAadjeGFR_scale.csv"))
 
 
 Clean_Results_Age_Creattype %>%
-    select(-P20) %>% rename("Dose P20" = P20_dose) %>% 
+  select(-P20) %>% rename("Dose P20" = P20_dose) %>% 
   write_csv(path = paste0(fig_export_dir, "/Results_by_Age.csv"))
-  
+
 Clean_Results_BSA_Creattype %>%
-    select(-P20) %>% rename("Dose P20" = P20_dose) %>% 
-    write_csv(path = paste0(fig_export_dir, "/Results_by_BSA.csv"))
+  select(-P20) %>% rename("Dose P20" = P20_dose) %>% 
+  write_csv(path = paste0(fig_export_dir, "/Results_by_BSA.csv"))
 
 Clean_Results_Sex_Creattype %>%
-    select(-P20) %>% rename("Dose P20" = P20_dose) %>% 
+  select(-P20) %>% rename("Dose P20" = P20_dose) %>% 
   write_csv(path = paste0(fig_export_dir, "/Results_by_Sex.csv"))
-  
+
 
 ```
 
@@ -2513,14 +2535,14 @@ equations = a[[1]]$equation %>% unique()
 for(i in 1:3){
   for(func in list(RMSE_resid, median, IQR)){
     Bootstrap_test(x1 = filter(a[[i]], equation == equations[1]) %>% pull(resid),
-               x2 = filter(a[[i]], equation == equations[4]) %>% pull(resid), 
-               func = func, 
-               return_all = T) %>%
+                   x2 = filter(a[[i]], equation == equations[4]) %>% pull(resid), 
+                   func = func, 
+                   return_all = T) %>%
       print()
   }
 }
 
-                      
+
 
 undebug(Bootstrap_test)
 ```
@@ -2533,10 +2555,10 @@ Results_plot <- Results_CreatType %>%
   mutate(equation = factor(equation,
                            levels = c("Refit_CamGFR", "CamGFR_v1", "CKD-EPI", "LM", "FAS", "MDRD"),
                            labels = c("CamGFR v2", "CamGFR v1", "CKD-EPI", "Lund-Malmo",  "FAS", "MDRD"))) 
-  # bind_rows(mutate(Results_CreatType, Centre = "All")) %>%
-  # filter(Creatinine_type == "IDMS") %>%
-  # ungroup() %>%
-  # mutate(equ_centre = interaction(Centre, equation))
+# bind_rows(mutate(Results_CreatType, Centre = "All")) %>%
+# filter(Creatinine_type == "IDMS") %>%
+# ungroup() %>%
+# mutate(equ_centre = interaction(Centre, equation))
 
 
 p1 <- Results_plot %>% 
@@ -2671,7 +2693,7 @@ Clean_Results_CreatType %>%
 #   group_rows("Cambridge (n = 361)", 6, 10, latex_gap_space = "0.6em", hline_after = T) %>%
 #   group_rows("Gothenburg (n = 134)", 11, 15, latex_gap_space = "0.6em", hline_after = T) %>%
 #   group_rows("Mancheter (n = 55)", 16, 20, latex_gap_space = "0.6em", hline_after = T)
-  
+
 
 
 
@@ -2684,13 +2706,13 @@ Clean_Results_PatientType_Creattype %>%
   kable(caption = "Results for model comparison") %>%
   kable_styling(latex_options = c("scale_down", "repeat_header")) %>%
   # group_rows("IDMS creatinine (n = 550)", 1, 15, latex_gap_space = "0.6em", hline_after = T) %>%
-   kableExtra::group_rows(group_label = "Solid tumour (n = 435)", start_row= 1, end_row = 5, latex_gap_space = "0.6em", hline_after = T) %>%
-   kableExtra::group_rows("Heamalogical (n = 143)", 6, 10, latex_gap_space = "0.6em", hline_after = T) %>%
-   kableExtra::group_rows("Non-Cancer (n = 40)", 11, 15, latex_gap_space = "0.6em", hline_after = T) %>%
+  kableExtra::group_rows(group_label = "Solid tumour (n = 435)", start_row= 1, end_row = 5, latex_gap_space = "0.6em", hline_after = T) %>%
+  kableExtra::group_rows("Heamalogical (n = 143)", 6, 10, latex_gap_space = "0.6em", hline_after = T) %>%
+  kableExtra::group_rows("Non-Cancer (n = 40)", 11, 15, latex_gap_space = "0.6em", hline_after = T) %>%
   # group_rows("Non-IDMS creatinine (n = 906)", 16, 30, latex_gap_space = "0.6em", hline_after = T) %>%
-   kableExtra::group_rows("Solid tumour (n = 885)", 16, 20, latex_gap_space = "0.6em", hline_after = T) %>%
-   kableExtra::group_rows("Heamalogical (n = 26)", 21, 25, latex_gap_space = "0.6em", hline_after = T) %>%
-   kableExtra::group_rows("Non-Cancer (n = 10)", 26, 30, latex_gap_space = "0.6em", hline_after = T)
+  kableExtra::group_rows("Solid tumour (n = 885)", 16, 20, latex_gap_space = "0.6em", hline_after = T) %>%
+  kableExtra::group_rows("Heamalogical (n = 26)", 21, 25, latex_gap_space = "0.6em", hline_after = T) %>%
+  kableExtra::group_rows("Non-Cancer (n = 10)", 26, 30, latex_gap_space = "0.6em", hline_after = T)
 
 
 
@@ -2770,7 +2792,7 @@ saveRDS(Refit_CamGFR, file = "CamGFR_reffitted.rds")
 
 
 ```{r BMI_assesment, echo  = F, eval = F}
-  
+
 Expansion_data_fitted <- Expansion_data %>%
   group_by(Diagnosis) %>% mutate(n = n()) %>% ungroup() %>%
   mutate(Diagnosis = ifelse(n < 50, "Other", Diagnosis)) %>%
@@ -2785,7 +2807,7 @@ Expansion_data_fitted <- Expansion_data %>%
   mutate(Spline_model_age_creat = predict(Spline_model_age_creat, newdata = .)^2) %>%
   mutate(MDRD = ifelse(Creatinine_type == "IDMS", MDRD_adj_IDMS, MDRD_adj)) 
 
-  
+
 a = Valitaion_fitted_df %>%
   mutate(BMI = Wt/((Ht/100)^2)) %>%
   mutate(BMI_group = cut(BMI, c(0, 18.5, 25, 30, 100))) %>%  
@@ -2797,7 +2819,7 @@ a %>%
   print(n = 100)
 
 a %>% filter(equation == "CamGFR v2") %>%
-    arrange(Creatinine_type, equation, BMI_group) 
+  arrange(Creatinine_type, equation, BMI_group) 
 
 
 p1 <- Expansion_data %>%
@@ -2811,7 +2833,7 @@ p1 <- Expansion_data %>%
   ylim(-4.5, 4.5) +
   # ylim(-80, 80)
   geom_smooth() 
-  
+
 p2 <- Expansion_data %>%
   filter(fit_index == F) %>%
   mutate(BMI = Wt/((Ht/100)^2)) %>%
@@ -2995,7 +3017,7 @@ p1 <- ggplot(plot_data, aes(x = .hat, y = .stdresid)) +
   stat_function(fun=cook_dist_function_neg, aes(linetype="Cook's Distance"), colour =tol2qualitative[2]) + 
   ylim(c(-max(abs(plot_data$.stdresid)), max(abs(plot_data$.stdresid)))) + 
   ggplot_theme() +  scale_linetype_manual(values = c("dashed"), name=NULL,
-                                      labels = c("Cook's Distance 0.5"),guide="legend") + 
+                                          labels = c("Cook's Distance 0.5"),guide="legend") + 
   theme(legend.justification = c(1, 0), legend.position = c(1, 0.01), legend.key = element_blank())
 p1
 
@@ -3079,7 +3101,7 @@ JNCI_fitted_values %>%
   Clean_results() %>%
   select(-P20) %>% rename("Dose P20" = P20_dose) %>% 
   write_csv(path = paste0(fig_export_dir, "/Results_JNCI_data_all.csv"))
-  
+
 JNCI_fitted_values %>%
   group_by(equation, Centre) %>%
   Statistic_summary_withP20_both() %>%
@@ -3088,7 +3110,7 @@ JNCI_fitted_values %>%
   Clean_results() %>%
   select(-P20) %>% rename("Dose P20" = P20_dose) %>%  rename("Dose P20" = P20_dose) %>% 
   write_csv(path = paste0(fig_export_dir, "/Results_JNCI_data_by_centre.csv"))
-  
+
 
 ```
 
