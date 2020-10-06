@@ -80,11 +80,21 @@ source("Bootstrap_CI_functions.R")
 
 # Data filtering
 
-<!-- Raw data that were received from the three different centres located at Cambridge, Manchester and Gothenburg. The non-IDMS patients used in the study have been used in previous publications. The IDMS patients  -->
-
-Data were individually processed and cleaned prior to being used for analysis. This step involved exploring the data for manual transcription errors such as the height and weight variable being swapped and removing unrealistic values for some variables. During this process all data were converted to have the same units to enable data pooling and analysis across the different centres and sub-group categories.
-
-Next, patients with data outside the inclusion criteria were removed.  With regard to creatinine, we excluded readings below 18 umol/L or above 400 umol/L. These values were chosen as the lower value is the typical detection threshold on the measurement assay and the upper value is 3-4 times the upper limit of 'normal' in most centres, thus corresponding to a value at which most clinicians would consider kidney function severely impaired.
+<!-- Raw data that were received from the three different centres located at
+Cambridge, Manchester and Gothenburg. The non-IDMS patients used in the study
+have been used in previous publications. The IDMS patients  -->
+Data were individually processed and cleaned prior to being used for analysis.
+This step involved exploring the data for manual transcription errors such as
+the height and weight variable being swapped and removing unrealistic values for
+some variables. During this process all data were converted to have the same
+units to enable data pooling and analysis across the different centres and
+sub-group categories.
+Next, patients with data outside the inclusion criteria were removed.  With
+regard to creatinine, we excluded readings below 18 umol/L or above 400 umol/L.
+These values were chosen as the lower value is the typical detection threshold
+on the measurement assay and the upper value is 3-4 times the upper limit of
+'normal' in most centres, thus corresponding to a value at which most clinicians
+would consider kidney function severely impaired.
 
 
 ```{r seting_up_datsets, eval = T, cache = F, include = F}
@@ -173,8 +183,8 @@ Expansion_data_fit <- Expansion_data %>%
 
 
 # Data discription
-
-The data used in this manuscript are summaries in Tables \ref{tab:summary_centr} and \ref{tab:summary_categorical}.
+The data used in this manuscript are summaries in Tables \ref{tab:summary_centr}
+and \ref{tab:summary_categorical}.
 
 ```{r data_characteristic_tables, cache = T, echo = F, warning=F}
 Samples_per_centre_all <- Expansion_data %>%
@@ -384,7 +394,15 @@ Samples_per_centre_all %>%
 
 
 
-Data summary tables are not the best way to display and summarises data, often it can be more beneficial to show data with the aid of a plot. In Figure \ref{fig:centre_boxplot} we produce a boxplot for each of the continuous variables for each centre separately. In addition, we give p-values for a pairwise t-test between the centres. For this we observe that there are general differences between the patients from the three different centres. Patients from Cambridge and Gothenburg appear to be more closely matched to each other then to patients from Manchester, where the patients are on average slightly older with a lower GFR. 
+Data summary tables are not the best way to display and summarises data, often
+it can be more beneficial to show data with the aid of a plot. In Figure
+\ref{fig:centre_boxplot} we produce a boxplot for each of the continuous
+variables for each centre separately. In addition, we give p-values for a
+pairwise t-test between the centres. For this we observe that there are general
+differences between the patients from the three different centres. Patients from
+Cambridge and Gothenburg appear to be more closely matched to each other then to
+patients from Manchester, where the patients are on average slightly older with
+a lower GFR.
 
 ```{r PLOT_data_characteristics_1, echo = F, fig.width=9, fig.height=7, fig.cap="\\label{fig:centre_boxplot}Boxplot of the continuous variables split by Centre. Creatinine has been log transfomed and split into IDMS and non-IDMS. P-values are shown for t-test for the difference in the mean between centres for each variable."}
 my_comparisons <- list( c("Cambridge", "Gothenburg"), c("Manchester", "Gothenburg") )
@@ -435,7 +453,12 @@ Boxplots_variables
 
 ```
 
-In Figure \ref{fig:diagnosis_boxplot} we again display the data using boxplots but this time split patients by their diagnosis. Here we observe a far larger differences between the groups, which is expected given that certain diagnosis will be enriched wich sertain patients. For example, patients with germ cell tumours (GCT) or sarcoma patients tend to be younger and hence would have a higher GFR and a lower creatinine, which is what we seen in the data. 
+In Figure \ref{fig:diagnosis_boxplot} we again display the data using boxplots
+but this time split patients by their diagnosis. Here we observe a far larger
+differences between the groups, which is expected given that certain diagnosis
+will be enriched wich sertain patients. For example, patients with germ cell
+tumours (GCT) or sarcoma patients tend to be younger and hence would have a
+higher GFR and a lower creatinine, which is what we seen in the data.
 
 ```{r PLOT_data_characteristics_2, echo=F, fig.width=9, fig.height=7, fig.cap = "\\label{fig:diagnosis_boxplot}Boxplot of the continuous variables split by disease diagnosis. Boxplots are ordered by number the number of patients, with the diagnosis with the most patients on the left. Creatinine has been log transfomed and split into IDMS and non-IDMS. Only diagnosis with more than 50 patients were included."}
 tol12qualitative=c("#332288", "#6699CC", "#88CCEE", "#44AA99", "#117733",
@@ -492,9 +515,24 @@ ggsave(filename= "Comparison_three_dataset_variables.pdf", path = paste0(fig_exp
 
 
 
-## Ethical data
-
-For a subsection of the patient population (specifically the majority of patients from Manchester and the majority of new patients from Addenbrookes) we had information on ethnicity. From a total of `r nrow(filter(Expansion_data, !is.na(Ethnicity)))` patients with known ethnicity, `r nrow(filter(Expansion_data, Ethnicity == "White"))` were White (either White British, White Irish, White other), `r nrow(filter(Expansion_data, Ethnicity == "Asian"))` were Asian (Asian Indian, Asian Pakistani, Asian Bangladeshi, Asian other, Chinese Other Chinese, Mixed White and Asian), `r nrow(filter(Expansion_data, Ethnicity == "Black"))` were Black (Black African, Black Caribbean, Black other, Mixed White and Black Caribbean, Mixed White and Black African) and `r nrow(filter(Expansion_data, Ethnicity == "Other"))` were of mixed ethnicity (other ethnic group, other mixed). Figure \ref{fig:boxplot_ethnicity} shows boxplots for age, BSA, mGFR and log(SCr) for patients from the ethnic subgroups. t-tests for difference in the mean were performed comparing the largest subgroup of white patients to all other ethnic subgroups. There were no significant differences in the serum creatinine levels for patients from different ethnicity. 
+## Ethnical data
+For a subsection of the patient population (specifically the majority of
+patients from Manchester and the majority of new patients from Addenbrookes) we
+had information on ethnicity. From a total of `r nrow(filter(Expansion_data,
+!is.na(Ethnicity)))` patients with known ethnicity, `r
+nrow(filter(Expansion_data, Ethnicity == "White"))` were White (either White
+British, White Irish, White other), `r nrow(filter(Expansion_data, Ethnicity ==
+"Asian"))` were Asian (Asian Indian, Asian Pakistani, Asian Bangladeshi, Asian
+other, Chinese Other Chinese, Mixed White and Asian), `r
+nrow(filter(Expansion_data, Ethnicity == "Black"))` were Black (Black African,
+Black Caribbean, Black other, Mixed White and Black Caribbean, Mixed White and
+Black African) and `r nrow(filter(Expansion_data, Ethnicity == "Other"))` were
+of mixed ethnicity (other ethnic group, other mixed). Figure
+\ref{fig:boxplot_ethnicity} shows boxplots for age, BSA, mGFR and log(SCr) for
+patients from the ethnic subgroups. t-tests for difference in the mean were
+performed comparing the largest subgroup of white patients to all other ethnic
+subgroups. There were no significant differences in the serum creatinine levels
+for patients from different ethnicity.
 
 ```{r PLOT_Ethnicity_boxplot, echo=F, fig.width=9, message = F, warning=F, fig.height=7, fig.cap="\\label{fig:boxplot_ethnicity}Boxplots of age, BSA, GFR and log(SCr), IDMS log(SCr) and Age where patients are split by ethnicity. The '\\*' or 'ns' at the top of the boxplot represents the p-value from a t-test between the largest subgroup of white patients and each other ethnic subgroups, where 'ns' represents a p-value greater than 0.05 and '\\*', '\\*\\*' and '\\*\\*\\*' represent p-values less than 0.05, 0.01 and 0.001 respectively."}
 
@@ -539,13 +577,40 @@ ggsave(paste0(fig_export_dir, "Boxpolt_ethnicity.pdf"), plot = Boxplots_ethnicit
 
 
 
-## Comparing Creatinien methods: IDMS to non-IDMS 
-
-We next aimed to compare IDMS creatinine values to non-IDMS creatinine values in more detail to assess whether our model would need to be adjusted in order to be suitable for IDMS creatinine measurements. 
-
-Isotope dilution mass spectrometry (IDMS) refers to the creatinine measurement being calibrated to be traceable to an IDMS reference measurement procedure. This standardisation was introduced by the NKDEP's Laboratory Working Group in collaboration with the International Federation of Clinical Chemistry and Laboratory Medicine and the European Communities Confederation of Clinical Chemistry (now called the European Federation of Clinical Chemistry and Laboratory Medicine) with the aim of reducing inter-laboratory variation in creatinine measurements. This reduced the variation and bias in the creatinine based estimation of GFR. This standardisation has been widely introduced across the US and in recent years many UK centres have introduced it. For example, the two UK centres for which we have IDMS creatinine measurements, Cambridge and Manchester, it was introduced on 01/03/2016 and 08/06/2016 respectively. The other centre in our study with IDMS creatinine measurement is Gothenburg, which only has IDMS creatinine with the earliest measurement from 02/01/2008. 
-
-We have already seen some comparison between IDMS and non-IDMS creatinine in Figure \ref{fig:boxplot_centre_1}, here Figures \ref{fig:boxplot_creat_1} and \ref{fig:boxplot_creat_w} show a more detailed comparison between the two patient groups. Figure \ref{fig:boxplot_creat_1} shows boxplots for each continous variable (log(cratinine), GFR, age, BSA, height and weight) where patiets have been split into IDMS and non-IDMS groups. Here we see there is a significant difference in the mean creatinein valuebetween IDMS and non-IDMS patients from both Cambridge and Manchester. We also observe a differnece in the mean GFR value for both centres and in the mean age and height values for patients from Cambridge. However, the difference in the non-creatinien variables is much smaller and doesnt explain the large difference seen in the creatine variable. Figure \ref{fig:boxplot_creat_2} shows the difference in the cratinine values when patients are split into diagnosis subgroups. This is prduced as batients with the same diagosis should be more matched then patients in the general population. For the 5 diagnosis shown the difference between IDMS and non-IDMS patients is significant.  
+## Comparing Creatinien methods: IDMS to non-IDMS
+We next aimed to compare IDMS creatinine values to non-IDMS creatinine values in
+more detail to assess whether our model would need to be adjusted in order to be
+suitable for IDMS creatinine measurements.
+Isotope dilution mass spectrometry (IDMS) refers to the creatinine measurement
+being calibrated to be traceable to an IDMS reference measurement procedure.
+This standardisation was introduced by the NKDEP's Laboratory Working Group in
+collaboration with the International Federation of Clinical Chemistry and
+Laboratory Medicine and the European Communities Confederation of Clinical
+Chemistry (now called the European Federation of Clinical Chemistry and
+Laboratory Medicine) with the aim of reducing inter-laboratory variation in
+creatinine measurements. This reduced the variation and bias in the creatinine
+based estimation of GFR. This standardisation has been widely introduced across
+the US and in recent years many UK centres have introduced it. For example, the
+two UK centres for which we have IDMS creatinine measurements, Cambridge and
+Manchester, it was introduced on 01/03/2016 and 08/06/2016 respectively. The
+other centre in our study with IDMS creatinine measurement is Gothenburg, which
+only has IDMS creatinine with the earliest measurement from 02/01/2008.
+We have already seen some comparison between IDMS and non-IDMS creatinine in
+Figure \ref{fig:boxplot_centre_1}, here Figures \ref{fig:boxplot_creat_1} and
+\ref{fig:boxplot_creat_w} show a more detailed comparison between the two
+patient groups. Figure \ref{fig:boxplot_creat_1} shows boxplots for each
+continous variable (log(cratinine), GFR, age, BSA, height and weight) where
+patiets have been split into IDMS and non-IDMS groups. Here we see there is a
+significant difference in the mean creatinein valuebetween IDMS and non-IDMS
+patients from both Cambridge and Manchester. We also observe a differnece in the
+mean GFR value for both centres and in the mean age and height values for
+patients from Cambridge. However, the difference in the non-creatinien variables
+is much smaller and doesnt explain the large difference seen in the creatine
+variable. Figure \ref{fig:boxplot_creat_2} shows the difference in the cratinine
+values when patients are split into diagnosis subgroups. This is prduced as
+batients with the same diagosis should be more matched then patients in the
+general population. For the 5 diagnosis shown the difference between IDMS and
+non-IDMS patients is significant.
 
 
 
@@ -723,8 +788,6 @@ ggsave(filename = "Creatinine_comparison.pdf",
        plot = creat_fig, 
        path = fig_export_dir,
        width = 25, height = 20,  units = "cm")
-
-
 ```
 
 ```{r additional_ttests, eval=F, echo=F}
@@ -879,14 +942,42 @@ Expansion_data %>%
 
 
 # Expanding CamGFR
-
-Give the above results we can be sure that IDMS creatinine is different enough from non-IDMS creatinine that we would need to adjust or produce a new model for IDMS creatinine data. In the published model both the MDRD and the CKD-EPI models are reportedly suitable for use with IDMS creatinine data. The MDRD was originally developed using non-IDMS creatinine data and was the retrospectively adjusted to be suitable for IDMS data, where the multiplicative coefficient changes from 175 to 186. For the CKD-EPI model, this was produced using IDMS data, hence it should only truly be used with IDMS data and not non-IDMS data. However, surprisingly we have not noticed any bias in using it with non-IDMS data (which one might expect if one of the input variables is 15-20% different from expected) and in fact it is constantly second best to the CamGFR model in all our previous validation work. 
-
-The primary aim of this study was to produce a model that would be suitable for both IDMS and non-IDMS creatinine data. For this we used all patients for our three centres, both patients with IDMS creatinine measurements and non-IDMS creatinine measurements. Also used all patients would allow us to more accurate estimate for the non-creatinine coefficients. 
-
-We approached adjusting the CamGFR model in two ways. Firstly, our original approach was to simply refit the coefficients in the CamGFR model, with an interaction term between all creatinine coefficients and the creatinine type (IDMS or non-IDMS). This can also be viewed as producing two separate models for the different creatinine types, which have the same coefficients for the non-creatinine terms. We will refer to this model as the refitted CamGFR model. Our other approach was to redo the model fitting procedure and develop a single or multiple new models that would be suitable for both creatinine types. This approach is likely to produce at the very least a slightly different model which may or may not be better than the model in from our original approach. Hence, at the end of the analysis the models would be compared and a new model would only be chosen if it was significantly better than the refitted CamGFR. 
-
-We chose only to use the centres where we had at least some IDMS data (Cambridge, Manchester and Gothenburg), this was done to avoid the complications in differences between non-IMDS creatinine measurements between centres. Hence, there were `r nrow(Expansion_data)` patients of which `r nrow(filter(Expansion_data, Creatinine_type =="IDMS"))` had IDMS patients. These data were subsequently split into a development and validation dataset at a ratio of 4:1. 
+Give the above results we can be sure that IDMS creatinine is different enough
+from non-IDMS creatinine that we would need to adjust or produce a new model for
+IDMS creatinine data. In the published model both the MDRD and the CKD-EPI
+models are reportedly suitable for use with IDMS creatinine data. The MDRD was
+originally developed using non-IDMS creatinine data and was the retrospectively
+adjusted to be suitable for IDMS data, where the multiplicative coefficient
+changes from 175 to 186. For the CKD-EPI model, this was produced using IDMS
+data, hence it should only truly be used with IDMS data and not non-IDMS data.
+However, surprisingly we have not noticed any bias in using it with non-IDMS
+data (which one might expect if one of the input variables is 15-20% different
+from expected) and in fact it is constantly second best to the CamGFR model in
+all our previous validation work.
+The primary aim of this study was to produce a model that would be suitable for
+both IDMS and non-IDMS creatinine data. For this we used all patients for our
+three centres, both patients with IDMS creatinine measurements and non-IDMS
+creatinine measurements. Also used all patients would allow us to more accurate
+estimate for the non-creatinine coefficients.
+We approached adjusting the CamGFR model in two ways. Firstly, our original
+approach was to simply refit the coefficients in the CamGFR model, with an
+interaction term between all creatinine coefficients and the creatinine type
+(IDMS or non-IDMS). This can also be viewed as producing two separate models for
+the different creatinine types, which have the same coefficients for the
+non-creatinine terms. We will refer to this model as the refitted CamGFR model.
+Our other approach was to redo the model fitting procedure and develop a single
+or multiple new models that would be suitable for both creatinine types. This
+approach is likely to produce at the very least a slightly different model which
+may or may not be better than the model in from our original approach. Hence, at
+the end of the analysis the models would be compared and a new model would only
+be chosen if it was significantly better than the refitted CamGFR.
+We chose only to use the centres where we had at least some IDMS data
+(Cambridge, Manchester and Gothenburg), this was done to avoid the complications
+in differences between non-IMDS creatinine measurements between centres. Hence,
+there were `r nrow(Expansion_data)` patients of which `r
+nrow(filter(Expansion_data, Creatinine_type =="IDMS"))` had IDMS patients. These
+data were subsequently split into a development and validation dataset at a
+ratio of 4:1.
 
 ## Refitted CamGFR
 
@@ -904,21 +995,30 @@ summary(Refit_CamGFR)
 ```
 
 
-As discused above, our naive approach was to refit the CamGFR model with an interaction variable between the creatinine variables and the creatinine type. Hence, the model has the following from:
-
-\begin{dmath*}
-\sqrt{GFR} = \beta_0 + \beta_1Age + \beta_2BSA + \beta_3Sex_M + \beta_4Scr_{IDMS} + \beta_5\log(Scr)Scr_{IDMS} +  \beta_6\log(Scr)^2Scr_{IDMS} + \beta_7\log(Scr)^3Scr_{IDMS} + \beta_8\log(Scr)Scr_{Non-IDMS} + \beta_9\log(Scr)^2Scr_{Non-IDMS} + \beta_{10}\log(Scr)^3Scr_{Non-IDMS} + \beta_{11}Age BSA +   \beta_{12}Age Sex_M
-\end{dmath*}
-where:
-\begin{itemize}
-\item $\beta_i$ for $i = 0,\dots,12$ are the fitted coefficients
-\item $BSA$ is the patient's body surface area
-\item $Sex_M$ is a dummy variable equaling $1$ if the patient's sex is male and 0 if female
-\item $Scr_{IDMS}$ is a dummy variable equaling $1$ if the creatinine measurement is IDMS traceable and 0 if it is not
-\item $Scr$ is the patient's serum creatinine measurement
+As discused above, our naive approach was to refit the CamGFR model with an
+interaction variable between the creatinine variables and the creatinine type.
+Hence, the model has the following from:
+\begin{dmath*} \sqrt{GFR} = \beta_0 + \beta_1Age + \beta_2BSA + \beta_3Sex_M +
+\beta_4Scr_{IDMS} + \beta_5\log(Scr)Scr_{IDMS} +  \beta_6\log(Scr)^2Scr_{IDMS} +
+\beta_7\log(Scr)^3Scr_{IDMS} + \beta_8\log(Scr)Scr_{Non-IDMS} +
+\beta_9\log(Scr)^2Scr_{Non-IDMS} + \beta_{10}\log(Scr)^3Scr_{Non-IDMS} +
+\beta_{11}Age BSA +   \beta_{12}Age Sex_M \end{dmath*} where: \begin{itemize}
+\item $\beta_i$ for $i = 0,\dots,12$ are the fitted coefficients \item $BSA$ is
+the patient's body surface area \item $Sex_M$ is a dummy variable equaling $1$
+if the patient's sex is male and 0 if female \item $Scr_{IDMS}$ is a dummy
+variable equaling $1$ if the creatinine measurement is IDMS traceable and 0 if
+it is not \item $Scr$ is the patient's serum creatinine measurement
 \end{itemize}
-
-The estimated coefficients are shown in Table S... from fitting the model using our model development dataset. Some of these coefficients, particularly $\beta_i$ where $i = 0,1,2,3,5,6,7,11,12$, are comparable with the coefficients from the original CamGFR model. Hence, Table \ref{tab:coef_comparison} displays the original coefficients along with a Z-statistic and p-value for the hypothesis test conducted for the difference between the new and original coefficients \cite{https://stats.stackexchange.com/questions/93540/testing-equality-of-coefficients-from-two-different-regressions}. Of the 9 comparable coefficients, only 1 was significantly different (p-value below 0.05). This indicates ... 
+The estimated coefficients are shown in Table S... from fitting the model using
+our model development dataset. Some of these coefficients, particularly
+$\beta_i$ where $i = 0,1,2,3,5,6,7,11,12$, are comparable with the coefficients
+from the original CamGFR model. Hence, Table \ref{tab:coef_comparison} displays
+the original coefficients along with a Z-statistic and p-value for the
+hypothesis test conducted for the difference between the new and original
+coefficients
+\cite{https://stats.stackexchange.com/questions/93540/testing-equality-of-coefficients-from-two-different-regressions}.
+Of the 9 comparable coefficients, only 1 was significantly different (p-value
+below 0.05). This indicates ...
 
 ```{r compare_coefficients, eval = T, echo = F}
 # Table of old and new coefficient for the CamGFR model
@@ -956,7 +1056,11 @@ kable(coefficient_table, caption = "\\label{tab:coef_comparison}Coeffient compar
       format = "latex", escape = FALSE, digits=3)
 ```
 
-Additionally, in Table \ref{tab:summary_refitted} we show the summary information for the refitted CamGFR model which includes a p-value for indicating whether the coefficient is significantly different from zero. All coefficients are significantly different from zero, indicating that none are unnecessary. 
+Additionally, in Table \ref{tab:summary_refitted} we show the summary
+information for the refitted CamGFR model which includes a p-value for
+indicating whether the coefficient is significantly different from zero. All
+coefficients are significantly different from zero, indicating that none are
+unnecessary.
 
 ```{r summary_refitted_model, echo = F}
 summary(Refit_CamGFR)$coef %>%
@@ -978,7 +1082,14 @@ summary(Refit_CamGFR)$coef %>%
 ```
 
 
-Another, way to check a models fit is to look at summary plots for the model. Figure S... shows the residual (on the square root scale) plotted against the three main contentious variables along with the fitted values. When a model fits the data well these plots should show no patterns, conversely when there is a pattern this may indicate that the model has not captured certain structures in the data. In Figure \ref{fig:resid_reffited} we see no major patterns other than perhaps some small bias to overestimate (negative residual) GFR for patients who are particularly young (less than 30 years old).  
+Another, way to check a models fit is to look at summary plots for the model.
+Figure S... shows the residual (on the square root scale) plotted against the
+three main contentious variables along with the fitted values. When a model fits
+the data well these plots should show no patterns, conversely when there is a
+pattern this may indicate that the model has not captured certain structures in
+the data. In Figure \ref{fig:resid_reffited} we see no major patterns other than
+perhaps some small bias to overestimate (negative residual) GFR for patients who
+are particularly young (less than 30 years old).
 
 ```{r summary_fplots_for_refit_model, echo = F, message = F, warning=F, fig.width=9, fig.height=6, fig.cap="\\label{fig:resid_reffited}Need to caption"}
 tol2qualitative=c("#4477AA", "#CC6677")
@@ -1050,7 +1161,13 @@ ggsave(filename = "S_model_fitting.pdf",
 
 ```
 
-Finally, we examine the fitted relationship between the log of the serum creatinine and the square root of GFR. Figure \ref{fig:cubic_fit} shows the three fitted cubic curves: the original CamGFR, the refitted for Non-IDMS data and the refitted for IDMS data. Here we see, as expected, the original curve and the refitted curve for non-IDMS patients match well. The refitted curve for IDMS patients is shifted to the right, which is what we might expect given our observations for the two creatinine types discussed above. 
+Finally, we examine the fitted relationship between the log of the serum
+creatinine and the square root of GFR. Figure \ref{fig:cubic_fit} shows the
+three fitted cubic curves: the original CamGFR, the refitted for Non-IDMS data
+and the refitted for IDMS data. Here we see, as expected, the original curve and
+the refitted curve for non-IDMS patients match well. The refitted curve for IDMS
+patients is shifted to the right, which is what we might expect given our
+observations for the two creatinine types discussed above.
 
 ```{r PLOT_of_cubic_creat_fit_refit_model, echo = F, fig.width=6, fig.height=4, fig.cap="\\label{fig:cubic_fit}Effect of log(SCr) on the fitted value of GFR for the original CamGFR, refitted CamGFR with IDMS cratinine and the refitted CamGFR with non-IDMS creatinine."}
 creat_func <- function(x, creat_type){ 
@@ -1089,7 +1206,15 @@ ggsave(paste0(fig_export_dir, "Cubic_polynomial_fit.pdf"), plot = SFigure4_cubic
 
 ```
 
-Finally, we compare the results of estimating GFR using the original and refitted CamGFR models on the non-IDMS data in the validation data set (n = `r Expansion_data %>% filter(fit_index == 0, Creatinine_type == "Non_IDMS") %>% nrow()`). This is done both graphically and by comparing model perfomance statistics. Graphically, we used an MA plot (a plot of the average of the two estimates on the x axis and the difference of the two estimates on the y axis) to compare the two estimates. In Figure \ref{fig:MAplot_refit} we observe that original CamGFR tends to predict higher values than the refitted GamGFR for small values of GFR and the opposite is true for larger values. 
+Finally, we compare the results of estimating GFR using the original and
+refitted CamGFR models on the non-IDMS data in the validation data set (n = `r
+Expansion_data %>% filter(fit_index == 0, Creatinine_type == "Non_IDMS") %>%
+nrow()`). This is done both graphically and by comparing model perfomance
+statistics. Graphically, we used an MA plot (a plot of the average of the two
+estimates on the x axis and the difference of the two estimates on the y axis)
+to compare the two estimates. In Figure \ref{fig:MAplot_refit} we observe that
+original CamGFR tends to predict higher values than the refitted GamGFR for
+small values of GFR and the opposite is true for larger values.
 
 ```{r PLOT_CamGFR_original_refitted_comparison, echo = F, message = F, warning=F, fig.width=5, fig.height=4, fig.cap="\\label{fig:MAplot_refit}MA-plot for the original CamGFR and the Refitted CamGFR models estimated values"}
 
@@ -1148,12 +1273,15 @@ p_values
 
 ```
 
-The above observations are confined in Table \ref{tab:refid_original_stats} . The two models have a very similar RMSE, median residual and residual interquatile range, with the refitted CamGFR having slight better statistics on all three. This may be due to the increased amount of data used to estimate the coefficients in the refitted CamGFR, hence, producing more accurate estimates of the coefficients.
-
-From the above we see that the refitted CamGFR model fits the data well and is comparable to the original CamGFR model for non-IDMS data. In the next section we investigate whether improvement can be made by adjusting the model. 
-
-
-
+The above observations are confined in Table \ref{tab:refid_original_stats} .
+The two models have a very similar RMSE, median residual and residual
+interquatile range, with the refitted CamGFR having slight better statistics on
+all three. This may be due to the increased amount of data used to estimate the
+coefficients in the refitted CamGFR, hence, producing more accurate estimates of
+the coefficients.
+From the above we see that the refitted CamGFR model fits the data well and is
+comparable to the original CamGFR model for non-IDMS data. In the next section
+we investigate whether improvement can be made by adjusting the model.
 Addition: Compare original and new CamGFR on IDMS data
 
 ```{r PLOT_compare_new_original, echo=F, fig.width=8, fig.height=8, message =F, fig.cap="Need to write caption"}
@@ -1254,9 +1382,10 @@ ggsave(paste0(fig_export_dir, "CamGFR_new_original_comparison_plot.pdf"),
 
 
 ## Adjusting CamGFR
-
-This workflow is similar to that of the original CamGFR model. We start with exploring the data, this helps inform decisions on how to best model the relationship between the predictive variables and the predicted variable GFR. We then ...  
-
+This workflow is similar to that of the original CamGFR model. We start with
+exploring the data, this helps inform decisions on how to best model the
+relationship between the predictive variables and the predicted variable GFR. We
+then ...
 ### Assessing relationships in the data
 
 ```{r box_cox_setup, echo = F}
@@ -1318,10 +1447,27 @@ ggsave(paste0(fig_export_dir, "Transforming_GFR_normallity.pdf"), plot = p,
 
 ```
 
-Firstly, we assessed which transformation should be applied to to our predictive variable GFR to achieve an approximate normal distributed variable. This was done both graphically and using the Box-Cox transformation. Figure S... shows a density plot along with a fitted normal curve for GFR, square-root transformed GFR and log transformed GFR. These are the three transformations which have been previously used. From this we see that the square root transformed GFR is the most approximate to a normal distribution. The box-cox transformation was applied to a simple model which contained all variables (along with the interaction between creatinine and cratinine type). The resulting power transformation suggested by the box-cox precedure is `r boxcox_max`, which is reasonably close to 0.5. Hence confirming the square root transformation suitability. Additionally, the square-root transformation removes the issues with predicting negative GFR values. 
-
-
-We then look at correlations between the variable. This is useful as it gives an indication of how useful the variables will be in predicting GFR. The ideal redictor for GFR would have a strong correlation with GFR but weak correlation with the other variables. Figure S... This shows that all variables are reasonably correlated with GFR, age and creatinine are not correlated with with the other explanatory variables whereas height, weight and BSA are all correlated with each other (BSA is is calculated from height and weight and hence is expected to be highly correlated with both).  
+Firstly, we assessed which transformation should be applied to to our predictive
+variable GFR to achieve an approximate normal distributed variable. This was
+done both graphically and using the Box-Cox transformation. Figure S... shows a
+density plot along with a fitted normal curve for GFR, square-root transformed
+GFR and log transformed GFR. These are the three transformations which have been
+previously used. From this we see that the square root transformed GFR is the
+most approximate to a normal distribution. The box-cox transformation was
+applied to a simple model which contained all variables (along with the
+interaction between creatinine and cratinine type). The resulting power
+transformation suggested by the box-cox precedure is `r boxcox_max`, which is
+reasonably close to 0.5. Hence confirming the square root transformation
+suitability. Additionally, the square-root transformation removes the issues
+with predicting negative GFR values.
+We then look at correlations between the variable. This is useful as it gives an
+indication of how useful the variables will be in predicting GFR. The ideal
+redictor for GFR would have a strong correlation with GFR but weak correlation
+with the other variables. Figure S... This shows that all variables are
+reasonably correlated with GFR, age and creatinine are not correlated with with
+the other explanatory variables whereas height, weight and BSA are all
+correlated with each other (BSA is is calculated from height and weight and
+hence is expected to be highly correlated with both).
 
 ```{r PLOT_data_corplot, fig.width=4, fig.height=4, fig.cap="Correlations matrix of GFR along with the explanitory variable", echo = F}
 # correlations = Expansion_data_fit %>%
@@ -1391,7 +1537,15 @@ ggsave(paste0(fig_export_dir, "Variable_correlation.pdf"), plot = p,
 ```
 
 
-We then looked at the relationships between our predictive variables (Age, creatinine, gender, height, weight and BSA) and sqrt(GFR).  Figure \ref{fig:gfr_variable_sex} shows the scatter plots of sqrt(GFR) against each of the continuous predictive variables, with points coloured by centre. This plot shows the non linear relationship between log(SCr) and sqrt(GFR). We also observe a deviation from linearity in the relationship between age and sqrt(GFR), where the slope of the relationship decreases for young patients. Other relationships appear linear and no substantial difference was observed between the different centres. 
+We then looked at the relationships between our predictive variables (Age,
+creatinine, gender, height, weight and BSA) and sqrt(GFR).  Figure
+\ref{fig:gfr_variable_sex} shows the scatter plots of sqrt(GFR) against each of
+the continuous predictive variables, with points coloured by centre. This plot
+shows the non linear relationship between log(SCr) and sqrt(GFR). We also
+observe a deviation from linearity in the relationship between age and
+sqrt(GFR), where the slope of the relationship decreases for young patients.
+Other relationships appear linear and no substantial difference was observed
+between the different centres.
 
 ```{r PLOT_scatter_plots_between_variables_centre, echo = F, fig.width=9, fig.height=9, message=F, fig.cap="\\label{fig:gfr_variable_sex}Plot of square root transformed GFR against Age, BSA, Height, Weight and log(SCr). Points are coloured by centre and creatinine has been split into IDMS and non-IDMS. The curves represent a smoothed fit to the data and were produced using a generalised additive model with a cubic regression spline."}
 tol3qualitative=c("#4477AA", "#DDCC77", "#CC6677")
@@ -1437,7 +1591,12 @@ ggsave(paste0(fig_export_dir, "Variable_scatter_centre_plot.pdf"), plot = Scatte
 ```
 
 
-We then analysed whether there was a difference in the non-creatinine between the IDMS and non-IDMS patients. In Figure \ref{fig:gfr_variable_IDMS} we reporduce the scatter plots for the continous variables for Figure \ref{fig:gfr_variable_sex}, however, this thime the points coloured by creatinine type. The plot shows no difference between the two patient groups for these variables. 
+We then analysed whether there was a difference in the non-creatinine between
+the IDMS and non-IDMS patients. In Figure \ref{fig:gfr_variable_IDMS} we
+reporduce the scatter plots for the continous variables for Figure
+\ref{fig:gfr_variable_sex}, however, this thime the points coloured by
+creatinine type. The plot shows no difference between the two patient groups for
+these variables.
 
 ```{r PLOT_scatter_plots_between_variables_creattype, echo = F, fig.width=9, fig.height=6, message=F, fig.cap="\\label{fig:gfr_variable_IDMS}Plot of square root transformed GFR against Age, BSA, Height, Weight. Points are coloures by creatinine type (IDMS, non-IDMS). The cruves represent a smoothed fit to the data and were produced using a generalized additive model with a cubic regression spline."}
 tol2qualitative=c("#4477AA", "#CC6677")
@@ -1474,7 +1633,16 @@ ggsave(paste0(fig_export_dir, "Variable_scatter_creattype_plot.pdf"),
 ```
 
 
-As discussed in the data description section, for patients from the Manchester centre and new patients from the Cambridge centre we had additional information on ethnicity the majority of the patients. However, due to the limited number of patients in the non-white ethnic groups detailed analysis is difficult. Figure \ref{fig:Ethnicity_Creat_GFR_plot} plots the GFR creatinine relationship where points have been coloured by the ethnic groups. Due to small numbers of patients, the confidence for the loess curves all overlap. The only difference observed is an upwards translation of the loess curve for black patients, whereby a ethnically black patients with a same creatinine value has a higher GFR value. 
+As discussed in the data description section, for patients from the Manchester
+centre and new patients from the Cambridge centre we had additional information
+on ethnicity the majority of the patients. However, due to the limited number of
+patients in the non-white ethnic groups detailed analysis is difficult. Figure
+\ref{fig:Ethnicity_Creat_GFR_plot} plots the GFR creatinine relationship where
+points have been coloured by the ethnic groups. Due to small numbers of
+patients, the confidence for the loess curves all overlap. The only difference
+observed is an upwards translation of the loess curve for black patients,
+whereby a ethnically black patients with a same creatinine value has a higher
+GFR value.
 
 ```{r Ethnicity_Creat_GFR_plot, echo=F, fig.width=5, fig.height=3, fig.cap="\\label{fig:Ethnicity_Creat_GFR_plot}sqrt(GFR) against log(SCr) with points and loess fitted lines coloured by ethnicity."}
 
@@ -1519,10 +1687,19 @@ save(null, full, Expansion_data_fit,
 
 ```
 
-For the original CamGFR model, we used a stepwise procedure to choose between candidate model with the use of three different criterion, 5 fold cross validation, leave-out-one  and Bayesian information criterion. In the analysis we found that all three criterion selected the same final model. 
-
-Here we will begin our model selection procedure by repeating this analysis. As before, the set of models we will search contains the variables, age, sex, height, weight, BSA, log(SCr) along with the pairwise interaction between these variable. We will also include the variable creatinine type and along with its interactions with other variables. We started each algorithm with the null model (the simplest model we consider) which contained the variable log(SCr), Creatinine type and their interaction. In the stepwise selection procedure at each step any model that could be reached by adding or removing one variable was considered.  
-
+For the original CamGFR model, we used a stepwise procedure to choose between
+candidate model with the use of three different criterion, 5 fold cross
+validation, leave-out-one  and Bayesian information criterion. In the analysis
+we found that all three criterion selected the same final model.
+Here we will begin our model selection procedure by repeating this analysis. As
+before, the set of models we will search contains the variables, age, sex,
+height, weight, BSA, log(SCr) along with the pairwise interaction between these
+variable. We will also include the variable creatinine type and along with its
+interactions with other variables. We started each algorithm with the null model
+(the simplest model we consider) which contained the variable log(SCr),
+Creatinine type and their interaction. In the stepwise selection procedure at
+each step any model that could be reached by adding or removing one variable was
+considered.
 When using BIC as the model selection criterion the following model was chosen:
 
 ```{r running_BIC_step, echo = F, cache = T}
@@ -1541,9 +1718,25 @@ summary(BIC_model)$coef %>%
 
 ```
 
-This is similar to the original CamGFR model, with the differences being the interaction with creatinine type and the one of the two interaction from the original model (Age:Sex) being replaced with BSA:Sex. 
-
-The other two criterion we used previously, and we again consider, are 5-fold cross-validation and leave-out-one cross validation. A n-fold cross-validation is calculated by splitting dataset into n groups of equal size, for each of the groups the model is fitted on the other n-1 groups. The RMSE is then calculated using this fitted model on the on group that was left out of the model fitting procedure. This is done for each of the n groups and the mean value is taken as the n-fold cross-validation value. This model selection procedure contains a random component to it, as the dataset is split randomly in the the n groups, thus to mitigate the effect of the randomness, we run the selection procedure many times and choose the most commonly selected model. We choose n to be 5. Leave-out-one cross-validation is the same as n-fold cross-validation where n is chosen to be the number of samples in the dataset. For both these statistics we added the additional requirement that the RMSE for the new model must be lower than 0.999 time the current value in order to move to a new model. This is done to slightly bias the models with fewer parameters and to stop excessive jumping between model with the same performance. 
+This is similar to the original CamGFR model, with the differences being the
+interaction with creatinine type and the one of the two interaction from the
+original model (Age:Sex) being replaced with BSA:Sex.
+The other two criterion we used previously, and we again consider, are 5-fold
+cross-validation and leave-out-one cross validation. A n-fold cross-validation
+is calculated by splitting dataset into n groups of equal size, for each of the
+groups the model is fitted on the other n-1 groups. The RMSE is then calculated
+using this fitted model on the on group that was left out of the model fitting
+procedure. This is done for each of the n groups and the mean value is taken as
+the n-fold cross-validation value. This model selection procedure contains a
+random component to it, as the dataset is split randomly in the the n groups,
+thus to mitigate the effect of the randomness, we run the selection procedure
+many times and choose the most commonly selected model. We choose n to be 5.
+Leave-out-one cross-validation is the same as n-fold cross-validation where n is
+chosen to be the number of samples in the dataset. For both these statistics we
+added the additional requirement that the RMSE for the new model must be lower
+than 0.999 time the current value in order to move to a new model. This is done
+to slightly bias the models with fewer parameters and to stop excessive jumping
+between model with the same performance.
 
 ```{r running_lon_step, eval=F, echo=F} 
 # source("model_selection/2_run_lon_selection.R")
@@ -1572,7 +1765,15 @@ kable(summary(Leave_out_n_model)$coef, caption = "\\label{tab:coef_lon}Summary o
 
 <!-- Need to change -->
 
-where it was choose a total of `r map_model_freq` out of `r total_freq` repititions.This model has several additional variables compared with the BIC model. Specifically, height and weight are now included along with the interaction variables between and BSA and height. If we look at the summary of the model we observe that the additional weight and interaction variables are significantly different from 0 (height is not significant but as it has an interaction term which is significant it does not matter), however, with the addition of more variables we are at an increase risk of having over-fit the model to the data.  
+where it was choose a total of `r map_model_freq` out of `r total_freq`
+repititions.This model has several additional variables compared with the BIC
+model. Specifically, height and weight are now included along with the
+interaction variables between and BSA and height. If we look at the summary of
+the model we observe that the additional weight and interaction variables are
+significantly different from 0 (height is not significant but as it has an
+interaction term which is significant it does not matter), however, with the
+addition of more variables we are at an increase risk of having over-fit the
+model to the data.
 
 ```{r Running_lo1_step, eval = F, echo = F}
 source("model_selection/2_run_lo1_selection.R")
@@ -1727,9 +1928,14 @@ ggsave(paste0(fig_export_dir, "Compare_coef_models.pdf"),
 
 <!-- Need to change -->
 
-We further examine the fit of the BIC model in Figure \ref{fig:resid_BIC}, where we observe a very similar Figure \ref{fig:resid_reffited} for the refitted model. Hence, the model also fits the data well. 
-
-The summary of leave-out-n model coefficients are shown in Table \ref{tab:coef_lon}. Here we see that the only variables which are not significantly different from 0 are Ht and the cubic term for IDMS creatinine. The height variable has interaction with other variables and hence it does not matter if it is insignificant. 
+We further examine the fit of the BIC model in Figure \ref{fig:resid_BIC}, where
+we observe a very similar Figure \ref{fig:resid_reffited} for the refitted
+model. Hence, the model also fits the data well.
+The summary of leave-out-n model coefficients are shown in Table
+\ref{tab:coef_lon}. Here we see that the only variables which are not
+significantly different from 0 are Ht and the cubic term for IDMS creatinine.
+The height variable has interaction with other variables and hence it does not
+matter if it is insignificant.
 
 ```{r PLOT_summary_plots_for_BIC_model, echo = F, message = F, warning=F, fig.width=9, fig.height=6, fig.cap="\\label{fig:resid_BIC}Residual aginst age, fitted value, log(SCr) and BSA for the BI selected model."}
 tol2qualitative=c("#4477AA", "#CC6677")
@@ -1761,7 +1967,15 @@ ggsave(paste0(fig_export_dir, "Model_fit_BICmodel.pdf"),
 
 ```
 
-Finally, we wanted to see to what extent the interaction variables chosen during the selection procedure can be seen in the data. Figure \ref{fig:interaction_plots} consists of 3 panels one for each interaction variable in the leave-out-n model. The interaction BSA:Sex is easily observed, where the male patients have a much steeper gradient. The interaction between Age:BSA can also be seen in the data, where patients with high BSA have a larger decrease (steeper gradient) in GFR as they age. The interaction between Age:Ht, which is unique to the leave-out-n model is far less clear in the data and appears to be driven by patients with very small BSA.
+Finally, we wanted to see to what extent the interaction variables chosen during
+the selection procedure can be seen in the data. Figure
+\ref{fig:interaction_plots} consists of 3 panels one for each interaction
+variable in the leave-out-n model. The interaction BSA:Sex is easily observed,
+where the male patients have a much steeper gradient. The interaction between
+Age:BSA can also be seen in the data, where patients with high BSA have a larger
+decrease (steeper gradient) in GFR as they age. The interaction between Age:Ht,
+which is unique to the leave-out-n model is far less clear in the data and
+appears to be driven by patients with very small BSA.
 
 ```{r PLOT_interaction_variable, echo = F, cache=T, fig.height=6, fig.width=9, results = 'hide', fig.cap="\\label{fig:interaction_plots}Plots showing the interaction variables selected in the leave-out-n model"}
 tol5qualitative=c("#332288", "#88CCEE", "#117733", "#DDCC77", "#CC6677")
@@ -1863,10 +2077,23 @@ SFigure4_cubic_Creat_fit
 
 
 ### Spline models
-
-In additional to the above analysis we wanted to explore whether a continuous piecewise linear relationship might be more appropriate for the age and creatinine terms. This was driven by the observations above where, in Figure S... we observed a slight  non-linear relationship between Age and GFR, we observe a change in gradient around the age of 40. For relationship in particular a piecewise linear relationship looks appropriate. In addition, the CKD-EPI models the creatinine GFR relationship with a piecewise linear fit, hence, we explored a piecewise linear fit for this relationship too. 
-
-Fitting these relationships was not possible with our stepwise selection workflow. Hence, for this section a more manual process was used. Starting with the refitted CamGFR model (or the BIC model) three new models were fitted. The first model was the refitted CamGFR model with a piecewise spline for Age with a knot location around 40 (the exact location is estimated from the data). The next model was a model with the same non-creatinine terms as the refitted CamGFR but with the cubic creatinine terms replaced with a piecewise linear curve with two knots at log(SCr) values around -0.1 and 0.5. The third model contained both these piecewise linear curves. 
+In additional to the above analysis we wanted to explore whether a continuous
+piecewise linear relationship might be more appropriate for the age and
+creatinine terms. This was driven by the observations above where, in Figure
+S... we observed a slight  non-linear relationship between Age and GFR, we
+observe a change in gradient around the age of 40. For relationship in
+particular a piecewise linear relationship looks appropriate. In addition, the
+CKD-EPI models the creatinine GFR relationship with a piecewise linear fit,
+hence, we explored a piecewise linear fit for this relationship too.
+Fitting these relationships was not possible with our stepwise selection
+workflow. Hence, for this section a more manual process was used. Starting with
+the refitted CamGFR model (or the BIC model) three new models were fitted. The
+first model was the refitted CamGFR model with a piecewise spline for Age with a
+knot location around 40 (the exact location is estimated from the data). The
+next model was a model with the same non-creatinine terms as the refitted CamGFR
+but with the cubic creatinine terms replaced with a piecewise linear curve with
+two knots at log(SCr) values around -0.1 and 0.5. The third model contained both
+these piecewise linear curves.
 
 ```{r adjusting_model, eval = T, include = F}
 # Need to show something about how I got these
@@ -1905,9 +2132,17 @@ Spline_model_age_creat_NoIDMS <-
 
 ```
 
-The shapes of the age and creatinine relationship with GFR for the piecewise fitted model are shown in Figure \ref{fig:spline_shape} . Surprisingly, we do not observe a shift between the non-IDMS and the IDMS relationship, unlike what we observed for the cubic fit in the refitted CamGFR model. The fitted age creatinine relationship is as we would expect from our observations in the data. 
-
-As always we then examine the fit of the model with a residual against age, BSA, log(SCr) and fitted values plot which is shown in Figure \ref{fig:resid_spline}. This Figure does show some minor improvement in the compared with the comparable figures (Figure \ref{fig:resid_BIC} and \ref{fig:resid_refitted}) for the BIC and refitted CamGFR models. In particular, the residual age plot no longer shows any patterns and the log(SCr) plot appears slightly better too.    
+The shapes of the age and creatinine relationship with GFR for the piecewise
+fitted model are shown in Figure \ref{fig:spline_shape} . Surprisingly, we do
+not observe a shift between the non-IDMS and the IDMS relationship, unlike what
+we observed for the cubic fit in the refitted CamGFR model. The fitted age
+creatinine relationship is as we would expect from our observations in the data.
+As always we then examine the fit of the model with a residual against age, BSA,
+log(SCr) and fitted values plot which is shown in Figure \ref{fig:resid_spline}.
+This Figure does show some minor improvement in the compared with the comparable
+figures (Figure \ref{fig:resid_BIC} and \ref{fig:resid_refitted}) for the BIC
+and refitted CamGFR models. In particular, the residual age plot no longer shows
+any patterns and the log(SCr) plot appears slightly better too.
 
 ```{r PLOT_spline_shape, eval = T, echo = F, fig.height=6, fig.width=6, fig.cap="\\label{fig:spline_shape}Shape of fitted piecewise lenear cureve of model that contains both a piecewise fit to age and a piecewise fit to log(SCr)"}
 
@@ -2091,11 +2326,18 @@ ggsave(paste0(fig_export_dir, "Spline_model_fit_plot.pdf"),
 
 ```
 
-With these three models along with the BIC and leave-out-n and refitted CamGFR model we move forward and compare them with the published model using our validation dataset. 
-
+With these three models along with the BIC and leave-out-n and refitted CamGFR
+model we move forward and compare them with the published model using our
+validation dataset.
 ## Model validation
-
-We next compared the currently published models which are suitable for IDMS data with our six candidate models. Of the published models, only the CKD-EPI and MDRD were either developed on or adjusted to be suitable for IDMS creatinine data. The MDRD was originally developed on non-IDMS data and the original intercept term was 186, since its publication this term has been adjusted to 175 so that the model is suitable for IDMS data. The CKD-EPI was developed on IDMS data. However, we and other have shown it to be accurate at estimating GFR using non-IDMS
+We next compared the currently published models which are suitable for IDMS data
+with our six candidate models. Of the published models, only the CKD-EPI and
+MDRD were either developed on or adjusted to be suitable for IDMS creatinine
+data. The MDRD was originally developed on non-IDMS data and the original
+intercept term was 186, since its publication this term has been adjusted to 175
+so that the model is suitable for IDMS data. The CKD-EPI was developed on IDMS
+data. However, we and other have shown it to be accurate at estimating GFR using
+non-IDMS
 
 ```{r performance_IDMS_data_tables_all, include = T, echo=F, cache=T}
 
@@ -2665,9 +2907,28 @@ ggsave("Refit_CamGFR_comparison.pdf", plot = plot_creat,
 
 
 
-Table S... shows the results for the six candidate models along with the the MDRD and CKD-EPI models for IDMS and non-IDMS data separately. Additionally the results are graphically displayed in Figure S... . We observe that the spline model with age and creatinine piecewise linear terms is the most accurate for the non-IDMS patients and that the leave-out-n model is the most accurate for the IDMS patients. However, the difference between all candidate models is small. In fact, when we calculated p-values for the differences in the statistics between the six candidate models no difference was found to be significant for any of the four statistics (RMSE, median residual, residual IQR and P20). Whereas when comparing the six candidate model with CKD-EPI (the better of the two published models), all were found to be more accurate, less bias and more precise. Given these results, we conclude that although the changes made to the CamGFR do improve the model, the improvement is not great enough to warrant changing the CamGFR model. Hence, it is recommended that for IDMS patients we use the refitted CamGFR model so as to have some consistency with the original CamGFR model. 
-
-A supprising results form Table S... was that the CKD-EPI and the MDRD models were substantially less accurate and much more biased for the IDMS patients then they are for the non-IDMS patients. The decrease in accuracy is driven by the increased bias on the model as the precision does not change. Comparatively, using the CamGFR model as similar level of accuracy is achieved for both IDMS and Non-IDMS patients. 
+Table S... shows the results for the six candidate models along with the the
+MDRD and CKD-EPI models for IDMS and non-IDMS data separately. Additionally the
+results are graphically displayed in Figure S... . We observe that the spline
+model with age and creatinine piecewise linear terms is the most accurate for
+the non-IDMS patients and that the leave-out-n model is the most accurate for
+the IDMS patients. However, the difference between all candidate models is
+small. In fact, when we calculated p-values for the differences in the
+statistics between the six candidate models no difference was found to be
+significant for any of the four statistics (RMSE, median residual, residual IQR
+and P20). Whereas when comparing the six candidate model with CKD-EPI (the
+better of the two published models), all were found to be more accurate, less
+bias and more precise. Given these results, we conclude that although the
+changes made to the CamGFR do improve the model, the improvement is not great
+enough to warrant changing the CamGFR model. Hence, it is recommended that for
+IDMS patients we use the refitted CamGFR model so as to have some consistency
+with the original CamGFR model.
+A supprising results form Table S... was that the CKD-EPI and the MDRD models
+were substantially less accurate and much more biased for the IDMS patients then
+they are for the non-IDMS patients. The decrease in accuracy is driven by the
+increased bias on the model as the precision does not change. Comparatively,
+using the CamGFR model as similar level of accuracy is achieved for both IDMS
+and Non-IDMS patients.
 
 
 
