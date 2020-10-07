@@ -2683,10 +2683,6 @@ Results_eGFR_Creattype <- Validation_fitted_df %>%
   ungroup() 
 Clean_Results_eGFR_Creattype <- Clean_results(Results_eGFR_Creattype)
 
-
-
-
-
 Results_BSAadj_eGFR_Creattype <- Validation_fitted_df %>% 
   mutate(eGFR_BSA = fitted/BSA*1.73) %>%
   mutate(eGFR_cut = cut(eGFR_BSA, breaks =  c(0, 60, 90, 310))) %>% 
@@ -2748,7 +2744,6 @@ Clean_Results_BSAadj_eGFR_Creattype_on_BSAadj_eGFR_scale %>%
   write_csv(path = file.path(fig_export_dir,
                           "Results_by_BSAadjeGFR_on_BSAadjeGFR_scale.csv"))
 
-
 Clean_Results_Age_Creattype %>%
   select(-P20) %>% rename("Dose P20" = P20_dose) %>% 
   write_csv(path = file.path(fig_export_dir, "Results_by_Age.csv"))
@@ -2792,7 +2787,6 @@ p_values_CreatType =
 
 
 ```
-
 
 ```{r bootstrap_p_values, echo = F, eval = F, cache=T}
 
@@ -2846,10 +2840,6 @@ for(i in 1:3){
       print()
   }
 }
-
-
-
-undebug(Bootstrap_test)
 ```
 
 
