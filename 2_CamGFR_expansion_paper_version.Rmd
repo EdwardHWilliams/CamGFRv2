@@ -64,10 +64,12 @@ library(ggpubr)
 library(jtools)
 library(gtable)
 library(cowplot)
+library(grid)
 library(ggpubr)
 library(scales)
 library(ggsignif)
 library(googlesheets)
+library(broom.mixed)
 
 # Load the data and helper function
 source("Clean_data.R")
@@ -1911,7 +1913,9 @@ Compare_coef_plot <- Compare_coef_plot +
                    labels=names)
 
 func <- function(model, name){
-  summary(model) %>% tidy() %>% as.data.frame() %>%
+  model %>%
+    tidy() %>%
+    as.data.frame() %>%
     select(term, estimate, std.error) %>%
     mutate(model = name)
 }
@@ -1957,7 +1961,6 @@ p <-  ggplot(df) +
   xlab("Estiamted parameter value")
 p
 
-library(grid)
 gt = ggplot_gtable(ggplot_build(p))
 # gtable_show_layout(gt)
 gt$heights[8] = 2*gt$heights[8]
@@ -2149,7 +2152,7 @@ these piecewise linear curves.
 ```{r adjusting_model, eval = T, include = F}
 # Need to show something about how I got these
 Spline_model_age <- segmented(Refit_CamGFR, seg.Z = ~Age, psi = 40, 
-                              control = seg.control(toll = 1e-06,
+                              control = seg.control(tol = 1e-06,
                                                     it.max = 100, h = 0.1))
 
 Spline_model_creat <- 
@@ -2159,7 +2162,7 @@ Spline_model_creat <-
   segmented(obj = .,  seg.Z = ~log_Creat_IDMS + log_Creat_nonIDMS, 
             psi = list("log_Creat_IDMS" = c(-0.1, .5), 
                        "log_Creat_nonIDMS" = c(-0.1, .5)),
-            control = seg.control(toll = 1e-06, it.max = 100, h = 0.1))
+            control = seg.control(tol = 1e-06, it.max = 100, h = 0.1))
 
 set.seed(123)
 Spline_model_age_creat <- 
@@ -2169,7 +2172,7 @@ Spline_model_age_creat <-
   segmented(obj = .,  seg.Z = ~Age + log_Creat_IDMS + log_Creat_nonIDMS, 
             psi = list("Age" = 40, "log_Creat_IDMS" = c(-0.1, .5), 
                        "log_Creat_nonIDMS" = c(-0.1, .5)), 
-            control = seg.control(toll = 1e-06, it.max = 100, h = 0.1))
+            control = seg.control(tol = 1e-06, it.max = 100, h = 0.1))
 Spline_model_age_creat
 
 
@@ -2179,7 +2182,7 @@ Spline_model_age_creat_NoIDMS <-
      data = Expansion_data_fit) %>%
   segmented(obj = .,  seg.Z = ~Age + log_Creat, 
             psi = list("Age" = 40, "log_Creat" = c(-0.1, .5)), 
-            control = seg.control(toll = 1e-06, it.max = 100, h = 0.1))
+            control = seg.control(tol = 1e-06, it.max = 100, h = 0.1))
 
 
 ```
