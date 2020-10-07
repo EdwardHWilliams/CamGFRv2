@@ -3,4 +3,11 @@
 .RData
 .Ruserdata
 CamGFRv2.Rproj
+
+# knitr files
+*_cache
+*_files
+
+# actual data
 All_clean_GFR_data.csv
+Addenbrookes_combined_longitudinal_clean_GFR_data.csv
