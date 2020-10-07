@@ -64,10 +64,12 @@ library(ggpubr)
 library(jtools)
 library(gtable)
 library(cowplot)
+library(grid)
 library(ggpubr)
 library(scales)
 library(ggsignif)
 library(googlesheets)
+library(broom.mixed)
 
 # Load the data and helper function
 source("Clean_data.R")
@@ -386,13 +388,12 @@ table %>%
 
 
 Samples_per_centre_all %>%
-  mutate_at(.vars = vars(-1), .funs = funs(as.numeric(.))) %>%
+  mutate_at(.vars = vars(-1), .funs = list(~as.numeric(.))) %>%
   as.data.frame() %>%
   column_to_rownames("Centre") %>%
   t() %>% 
   as.data.frame() %>%
   rownames_to_column(" ") %>%
-  # mutate_at(.vars = vars(-1), .funs = funs(as.numeric(.))) %>%
   as_tibble() %>%
   bind_rows(Centre_diagnosis_summary %>% rename(" " = Diagnosis) %>%
               as.data.frame()) %>%
@@ -1911,7 +1912,9 @@ Compare_coef_plot <- Compare_coef_plot +
                    labels=names)
 
 func <- function(model, name){
-  summary(model) %>% tidy() %>% as.data.frame() %>%
+  model %>%
+    tidy() %>%
+    as.data.frame() %>%
     select(term, estimate, std.error) %>%
     mutate(model = name)
 }
@@ -1957,7 +1960,6 @@ p <-  ggplot(df) +
   xlab("Estiamted parameter value")
 p
 
-library(grid)
 gt = ggplot_gtable(ggplot_build(p))
 # gtable_show_layout(gt)
 gt$heights[8] = 2*gt$heights[8]
@@ -2149,7 +2151,7 @@ these piecewise linear curves.
 ```{r adjusting_model, eval = T, include = F}
 # Need to show something about how I got these
 Spline_model_age <- segmented(Refit_CamGFR, seg.Z = ~Age, psi = 40, 
-                              control = seg.control(toll = 1e-06,
+                              control = seg.control(tol = 1e-06,
                                                     it.max = 100, h = 0.1))
 
 Spline_model_creat <- 
@@ -2159,7 +2161,7 @@ Spline_model_creat <-
   segmented(obj = .,  seg.Z = ~log_Creat_IDMS + log_Creat_nonIDMS, 
             psi = list("log_Creat_IDMS" = c(-0.1, .5), 
                        "log_Creat_nonIDMS" = c(-0.1, .5)),
-            control = seg.control(toll = 1e-06, it.max = 100, h = 0.1))
+            control = seg.control(tol = 1e-06, it.max = 100, h = 0.1))
 
 set.seed(123)
 Spline_model_age_creat <- 
@@ -2169,7 +2171,7 @@ Spline_model_age_creat <-
   segmented(obj = .,  seg.Z = ~Age + log_Creat_IDMS + log_Creat_nonIDMS, 
             psi = list("Age" = 40, "log_Creat_IDMS" = c(-0.1, .5), 
                        "log_Creat_nonIDMS" = c(-0.1, .5)), 
-            control = seg.control(toll = 1e-06, it.max = 100, h = 0.1))
+            control = seg.control(tol = 1e-06, it.max = 100, h = 0.1))
 Spline_model_age_creat
 
 
@@ -2179,7 +2181,7 @@ Spline_model_age_creat_NoIDMS <-
      data = Expansion_data_fit) %>%
   segmented(obj = .,  seg.Z = ~Age + log_Creat, 
             psi = list("Age" = 40, "log_Creat" = c(-0.1, .5)), 
-            control = seg.control(toll = 1e-06, it.max = 100, h = 0.1))
+            control = seg.control(tol = 1e-06, it.max = 100, h = 0.1))
 
 
 ```
@@ -2408,9 +2410,9 @@ Clean_output_table <- function(table){
     mutate_at(.vars = vars(median_fitted, starts_with("RMSE"),
                            starts_with("IQR"),
                            starts_with("median")), 
-              funs(round(., 2))) %>%
+              list(~round(., 2))) %>%
     mutate_at(.vars = vars(starts_with("P20")), 
-              funs(round(., 3))) %>%
+              list(~round(., 3))) %>%
     rename("median fitted value" = median_fitted) %>%
     mutate(RMSE = paste0(RMSE, " (", RMSE_lwr, ", ", RMSE_upr, ")")) %>%
     mutate(median = paste0(median, " (", median_lwr, ", ", median_upr, ")")) %>%
@@ -2577,7 +2579,7 @@ df %>%
 
 Clean_results <- function(x){
   x %>%
-    mutate_if(is.double, funs(round(., 2))) %>%
+    mutate_if(is.double, list(~round(., 2))) %>%
     mutate(RMSE = paste0(RMSE, " (", RMSE_lwr, ", ", RMSE_upr, ")")) %>%
     mutate(median = paste0(median, " (", median_lwr, ", ", median_upr, ")")) %>%
     mutate(IQR = paste0(IQR, " (", IQR_lwr, ", ", IQR_upr, ")")) %>%
@@ -2681,10 +2683,6 @@ Results_eGFR_Creattype <- Validation_fitted_df %>%
   ungroup() 
 Clean_Results_eGFR_Creattype <- Clean_results(Results_eGFR_Creattype)
 
-
-
-
-
 Results_BSAadj_eGFR_Creattype <- Validation_fitted_df %>% 
   mutate(eGFR_BSA = fitted/BSA*1.73) %>%
   mutate(eGFR_cut = cut(eGFR_BSA, breaks =  c(0, 60, 90, 310))) %>% 
@@ -2746,7 +2744,6 @@ Clean_Results_BSAadj_eGFR_Creattype_on_BSAadj_eGFR_scale %>%
   write_csv(path = file.path(fig_export_dir,
                           "Results_by_BSAadjeGFR_on_BSAadjeGFR_scale.csv"))
 
-
 Clean_Results_Age_Creattype %>%
   select(-P20) %>% rename("Dose P20" = P20_dose) %>% 
   write_csv(path = file.path(fig_export_dir, "Results_by_Age.csv"))
@@ -2790,7 +2787,6 @@ p_values_CreatType =
 
 
 ```
-
 
 ```{r bootstrap_p_values, echo = F, eval = F, cache=T}
 
@@ -2844,10 +2840,6 @@ for(i in 1:3){
       print()
   }
 }
-
-
-
-undebug(Bootstrap_test)
 ```
 
 
