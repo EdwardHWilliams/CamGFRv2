@@ -1,8 +1,8 @@
 .Rproj.user
 .Rhistory
-.RData
 .Ruserdata
 CamGFRv2.Rproj
+**.RData
 
 # knitr files
 *_cache
@@ -11,3 +11,6 @@ CamGFRv2.Rproj
 # actual data
 All_clean_GFR_data.csv
 Addenbrookes_combined_longitudinal_clean_GFR_data.csv
+
+# temporary files
+temp
