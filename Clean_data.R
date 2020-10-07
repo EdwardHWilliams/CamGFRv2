@@ -74,7 +74,13 @@ All_data <-
     )
   )
 
-
+Adden_long_combined <-  read_csv(paste0(files_location, "/Addenbrookes_combined_longitudinal_clean_GFR_data.csv"),
+                                 col_types = cols(DOB = col_date(format = "%Y-%m-%d"),
+                                                  Date_GFR = col_date(format = "%Y-%m-%d"),
+                                                  Date_creat = col_date(format = "%Y-%m-%d"),
+                                                  Date_diff = col_number(),
+                                                  Age = col_double())) %>%
+  filter(Age > 18)
 
 ################################################################################
 
