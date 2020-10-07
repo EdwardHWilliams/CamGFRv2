@@ -388,13 +388,12 @@ table %>%
 
 
 Samples_per_centre_all %>%
-  mutate_at(.vars = vars(-1), .funs = funs(as.numeric(.))) %>%
+  mutate_at(.vars = vars(-1), .funs = list(~as.numeric(.))) %>%
   as.data.frame() %>%
   column_to_rownames("Centre") %>%
   t() %>% 
   as.data.frame() %>%
   rownames_to_column(" ") %>%
-  # mutate_at(.vars = vars(-1), .funs = funs(as.numeric(.))) %>%
   as_tibble() %>%
   bind_rows(Centre_diagnosis_summary %>% rename(" " = Diagnosis) %>%
               as.data.frame()) %>%
@@ -2411,9 +2410,9 @@ Clean_output_table <- function(table){
     mutate_at(.vars = vars(median_fitted, starts_with("RMSE"),
                            starts_with("IQR"),
                            starts_with("median")), 
-              funs(round(., 2))) %>%
+              list(~round(., 2))) %>%
     mutate_at(.vars = vars(starts_with("P20")), 
-              funs(round(., 3))) %>%
+              list(~round(., 3))) %>%
     rename("median fitted value" = median_fitted) %>%
     mutate(RMSE = paste0(RMSE, " (", RMSE_lwr, ", ", RMSE_upr, ")")) %>%
     mutate(median = paste0(median, " (", median_lwr, ", ", median_upr, ")")) %>%
@@ -2580,7 +2579,7 @@ df %>%
 
 Clean_results <- function(x){
   x %>%
-    mutate_if(is.double, funs(round(., 2))) %>%
+    mutate_if(is.double, list(~round(., 2))) %>%
     mutate(RMSE = paste0(RMSE, " (", RMSE_lwr, ", ", RMSE_upr, ")")) %>%
     mutate(median = paste0(median, " (", median_lwr, ", ", median_upr, ")")) %>%
     mutate(IQR = paste0(IQR, " (", IQR_lwr, ", ", IQR_upr, ")")) %>%
