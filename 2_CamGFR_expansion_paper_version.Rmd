@@ -42,7 +42,9 @@ csl: /Users/willia01/Documents/Mendeley_Desktop/Bibtex/american-medical-associat
 #fig_export_dir = "/Users/willia01/Documents/Projects/GFR/Published_Git/GFR_model_extension/temp/"
 fig_export_dir = "temp"
 
-knitr::opts_chunk$set(warning=F, echo = F, cache = T)
+knitr::opts_chunk$set(warning=F,
+                      echo = F,
+                      cache = T)
 ```
 
 ```{r load_librarys_and_Rfiles, include = F, cache=F}
@@ -109,7 +111,7 @@ Expansion_data <- All_data %>%
   group_by(PatientID) %>% 
   mutate(Date_GFR_diff = c(NA, diff(Date_GFR))) %>%
   ungroup() %>%
-  # centres do not report creatinine values lwer than this value
+  # centres do not report creatinine values lower than this value
   filter(Ht > 130) %>% 
   mutate(Centre2 = Centre) %>%
   mutate(Centre2 = factor(Centre2,
@@ -137,7 +139,6 @@ Expansion_data <- All_data %>%
   #                              Patient_type)) %>% 
   # mutate(Patient_type = ifelse(Diagnosis == "Non-cancer", "Non-cancer", Patient_type)) %>%
   mutate(Diagnosis = ifelse(Diagnosis == "Non-cancer", "Unknown", Diagnosis)) %>%
-  mutate(Ethnicity = ifelse(Ethnicity == "Mixed/Other", "Other", Ethnicity)) %>%
   select_if(.predicate = not_all_na)
 
 # Filter extreme creatinin values
@@ -2559,7 +2560,6 @@ df <- Validation_fitted_df %>%
   group_by(equation) %>%
   filter(!(equation %in% c("Leave_out_1_model", "Spline_model_age_creat")))
 
-
 df %>% 
   summarise(n = n(), 
             equal = sum(GFR_dose == fitted_dose)/n(),
@@ -2571,10 +2571,7 @@ df %>%
   ) %>%
   arrange(-equal) %>% 
   do(my_normal_boot(.$fitted/.$GFR, func = P20_opp, name = "P20")) 
-
-
 ```
-
 
 ```{r performance_IDMS_data_tables, echo = F, include = F, cache=T}
 
