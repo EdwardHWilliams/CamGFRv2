@@ -5,7 +5,7 @@ library(dplyr)
 
 files_location <- getwd()
 
-All_data <- read_csv(paste0(files_location, "All_clean_GFR_data.csv"),
+All_data <- read_csv(paste0(files_location, "/All_clean_GFR_data.csv"),
                      col_types = cols(DOB = col_date(format = "%Y-%m-%d"),
                                       Date_GFR = col_date(format = "%Y-%m-%d"),
                                       Date_creat = col_date(format = "%Y-%m-%d"),
@@ -37,7 +37,13 @@ All_data <- read_csv(paste0(files_location, "All_clean_GFR_data.csv"),
                                       Total_protein = col_double()
                                       ))
 
-
+Adden_long_combined <-  read_csv(paste0(files_location, "/Addenbrookes_combined_longitudinal_clean_GFR_data.csv"),
+                                 col_types = cols(DOB = col_date(format = "%Y-%m-%d"),
+                                                  Date_GFR = col_date(format = "%Y-%m-%d"),
+                                                  Date_creat = col_date(format = "%Y-%m-%d"),
+                                                  Date_diff = col_number(),
+                                                  Age = col_double())) %>%
+  filter(Age > 18)
 
 ################################################################################
 
