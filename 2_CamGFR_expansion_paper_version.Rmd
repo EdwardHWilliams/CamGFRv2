@@ -2159,8 +2159,8 @@ Spline_model_creat <-
        log_Creat_nonIDMS + Age:Sex + BSA:Age, 
      data = Expansion_data_fit) %>%
   segmented(obj = .,  seg.Z = ~log_Creat_IDMS + log_Creat_nonIDMS, 
-            psi = list("log_Creat_IDMS" = c(-0.1, .5), 
-                       "log_Creat_nonIDMS" = c(-0.1, .5)),
+            psi = list("log_Creat_IDMS" = c(-0.1, .2), 
+                       "log_Creat_nonIDMS" = c(-0.1, .2)),
             control = seg.control(tol = 1e-06, it.max = 100, h = 0.1))
 
 set.seed(123)
@@ -2169,8 +2169,8 @@ Spline_model_age_creat <-
        log_Creat_nonIDMS + Age:Sex + BSA:Age, 
      data = Expansion_data_fit) %>%
   segmented(obj = .,  seg.Z = ~Age + log_Creat_IDMS + log_Creat_nonIDMS, 
-            psi = list("Age" = 40, "log_Creat_IDMS" = c(-0.1, .5), 
-                       "log_Creat_nonIDMS" = c(-0.1, .5)), 
+            psi = list("Age" = 40, "log_Creat_IDMS" = c(-0.1, .2), 
+                       "log_Creat_nonIDMS" = c(-0.1, .2)), 
             control = seg.control(tol = 1e-06, it.max = 100, h = 0.1))
 Spline_model_age_creat
 
@@ -2180,7 +2180,7 @@ Spline_model_age_creat_NoIDMS <-
        Age:Sex + BSA:Age, 
      data = Expansion_data_fit) %>%
   segmented(obj = .,  seg.Z = ~Age + log_Creat, 
-            psi = list("Age" = 40, "log_Creat" = c(-0.1, .5)), 
+            psi = list("Age" = 40, "log_Creat" = c(-0.1, .2)), 
             control = seg.control(tol = 1e-06, it.max = 100, h = 0.1))
 
 
