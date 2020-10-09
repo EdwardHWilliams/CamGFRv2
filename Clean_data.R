@@ -74,12 +74,40 @@ All_data <-
     )
   )
 
-Adden_long_combined <-  read_csv(paste0(files_location, "/Addenbrookes_combined_longitudinal_clean_GFR_data.csv"),
-                                 col_types = cols(DOB = col_date(format = "%Y-%m-%d"),
-                                                  Date_GFR = col_date(format = "%Y-%m-%d"),
-                                                  Date_creat = col_date(format = "%Y-%m-%d"),
-                                                  Date_diff = col_number(),
-                                                  Age = col_double())) %>%
+Adden_long_combined <-
+  read_csv(
+    paste0(
+      files_location,
+      "/Addenbrookes_combined_longitudinal_clean_GFR_data.csv"
+    ),
+    col_types = cols(
+      Clinician = col_character(),
+      Creatinine = col_double(),
+      Dept = col_character(),
+      Diagnosis_comment = col_character(),
+      DOB = col_date(format = "%Y-%m-%d"),
+      Date_GFR = col_date(format = "%Y-%m-%d"),
+      Date_creat = col_date(format = "%Y-%m-%d"),
+      Comment = col_character(),
+      Date_diff = col_number(),
+      Ethnicity = col_character(),
+      Ethnicity_detailed = col_character(),
+      GFR_corrected_error = col_double(),
+      GFR_corrected_expected = col_double(),
+      Age = col_double(),
+      BSA = col_double(),
+      norm_GFR = col_double(),
+      norm_GFR_error = col_double(),
+      norm_GFR_expected = col_double(),
+      Radiopharm = col_character(),
+      "Ordering Dept" = col_character(),
+
+      "VD L" = col_double(),
+      Which_EPIC = col_character(),
+      "+/- ml/min" = col_double(),
+      "+/- ml/min/1.73m2" = col_double()
+    )
+  ) %>%
   filter(Age > 18)
 
 ################################################################################
