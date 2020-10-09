@@ -641,6 +641,9 @@ Creatinein_data_multi <- Adden_long_combined %>%
   filter(Creat*88.4 > 18) %>% # remove creatinien values less than 18 as some 
   filter(Creat*88.4 < 400)
 
+
+
+
 ################################################################################
 # Plot 1
 ################################################################################
@@ -656,15 +659,172 @@ df_mixed <- Expansion_data %>%
   mutate(Creatinine_type = factor(Creatinine_type,
                                   levels = c("IDMS", "Non_IDMS"), 
                                   labels = c("IDMS", "Non-IDMS"))) %>%
-  mutate(x = interaction(Creatinine_type, Creatinine_method, sep = " ")) %>%
+  mutate(x = interaction(Creatinine_type, Creatinine_method, sep = " "),
+         xcopy = x) %>%
   filter(GFR_index == 1)
+```
 
+```{r, eval=F}
+title_size <- 10
+text_size <- 8
+centre_colors <- c(Cambridge = "#5b4e9f", Gothenburg = "#117733",
+                   Manchester = "#CC6677")
+method_colors <- c("IDMS Enzymatic"="#e6ab02", "IDMS Jaffe"="#d95f02",
+                   "Non-IDMS Jaffe"="#666666")
+showlegends <- FALSE
+stripplacement <- "outside"
 
+jaffe_idms_vs_jaffe_nonidms <-  df_mixed %>%
+  filter(x %in% c("IDMS Jaffe", "Non-IDMS Jaffe"))
+p_jaffe_idms_vs_jaffe_nonidms <- ggplot(data=jaffe_idms_vs_jaffe_nonidms,
+                                        aes(y = x, x = Creat, fill=x)) + 
+  geom_violin(position = "dodge", width = 0.9, show.legend = showlegends) + 
+  scale_fill_manual(values=method_colors) +
+  labs(fill = "Method",
+       x="SCr") +
+  ggplot_theme() +
+  theme(axis.title.y = element_blank(),
+        axis.text = element_text(size=text_size),
+        axis.title = element_text(size=title_size),
+        legend.position = "bottom")
+
+jaffe_vs_enzymatic <-  df_mixed %>%
+  filter(x %in% c("IDMS Jaffe", "IDMS Enzymatic")) %>%
+  mutate(method = "IDMS Jaffe")
+p_jaffe_vs_enzymatic <- ggplot(data=jaffe_vs_enzymatic,
+                           aes(y = x, x = Creat, fill=x)) + 
+  geom_violin(position = "dodge", width = 0.9, show.legend = showlegends) + 
+  scale_fill_manual(values=method_colors) +
+  facet_wrap(method ~ ., strip.position = "left") +
+  labs(fill = "Method",
+       y = "Method") +
+  ggplot_theme() +
+  theme(legend.position = "bottom",
+        axis.title.y = element_text(size=title_size),
+        axis.title.x = element_blank(),
+        axis.text = element_text(size=text_size),
+        strip.placement = stripplacement)
+
+enzymatic_idms_vs_jaffe_nonidms <-  df_mixed %>%
+  filter(x %in% c("IDMS Enzymatic", "Non-IDMS Jaffe")) %>%
+  mutate(method = "Non-IDMS Jaffe")
+p_enzymatic_idms_vs_jaffe_nonidms <- ggplot(data=enzymatic_idms_vs_jaffe_nonidms,
+                           aes(y = x, x = Creat, fill=x)) + 
+  geom_violin(position = "dodge", width = 0.9, show.legend = showlegends) + 
+  scale_fill_manual(values=method_colors) +
+  facet_wrap(method ~ ., strip.position = "left") +
+  labs(fill = "Method",
+       x = "SCr",
+       y = "Method") +
+  ggplot_theme() +
+  theme(legend.position = "bottom",
+        axis.text = element_text(size=text_size),
+        axis.title = element_text(size=title_size),
+        strip.placement = stripplacement)
+
+idms_jaffe <-  df_mixed %>%
+  filter(x=="IDMS Jaffe")
+p_idms_jaffe_distribution <- ggplot(data=idms_jaffe,
+                           aes(x= Creat, color=Centre)) + 
+  geom_density(show.legend = showlegends) +
+  scale_color_manual(values = centre_colors)  + 
+  facet_wrap(. ~ x) + 
+  ggplot_theme() +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        legend.position = "bottom",
+        axis.text = element_text(size=text_size),
+        axis.title = element_text(size=title_size))
+
+idms_enzymatic <-  df_mixed %>%
+  filter(x=="IDMS Enzymatic")
+p_idms_enzymatic_distribution <- ggplot(data=idms_enzymatic,
+                           aes(x= Creat, color=Centre)) + 
+  geom_density(show.legend = showlegends) +
+  scale_color_manual(values = centre_colors)  + 
+  facet_grid(xcopy ~ x, switch="y") +
+  ggplot_theme() +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        legend.position = "bottom",
+        axis.text = element_text(size=text_size),
+        axis.title = element_text(size=title_size),
+        strip.placement = stripplacement)
+
+nonidms_jaffe <-  df_mixed %>%
+  filter(x=="Non-IDMS Jaffe")
+p_nonidms_jaffe_distribution <- ggplot(data=nonidms_jaffe,
+                           aes(x= Creat, color=Centre)) + 
+  geom_density(show.legend = showlegends)  +
+  scale_color_manual(values = centre_colors) + 
+  facet_wrap(. ~ x) +
+  labs(x = "SCr") +
+  ggplot_theme() +
+  theme(legend.position = "bottom",
+        axis.text = element_text(size=text_size),
+        axis.title = element_text(size=title_size))
+
+p_legends <- ggplot(data=df_mixed,
+                           aes(y = x, x = Creat, fill=x, color=Centre)) + 
+  geom_violin(position = "dodge", width = 0.9) + 
+  scale_fill_manual(values=method_colors) +
+  scale_color_manual(values=centre_colors) +
+  labs(fill = "Method",
+       color="Centre",
+       x = "SCr",
+       y="") +
+  ggplot_theme() +
+  theme(legend.position = "bottom",
+        legend.direction = "horizontal",
+        legend.box="vertical",
+        legend.text = element_text(size=text_size),
+        legend.title = element_text(size=title_size),
+        legend.box.just = "left") + 
+  guides(color = guide_legend(override.aes = list(size = 2),
+                              keywidth = 0.5,keyheight = 0.5,),
+         fill = guide_legend(override.aes = list(size = 0.1),
+                             keywidth = 0.5,keyheight = 0.5,
+                             ))
+plot_legend <- cowplot::get_legend(p_legends)
+
+layout <- "
+aa#gg#
+bbcc##
+ddeeff
+"
+
+plots <- wrap_plots(a = p_idms_enzymatic_distribution,
+           b = p_jaffe_vs_enzymatic,
+           c = p_idms_jaffe_distribution,
+           d = p_enzymatic_idms_vs_jaffe_nonidms,
+           e = p_jaffe_idms_vs_jaffe_nonidms,
+           f = p_nonidms_jaffe_distribution,
+           g = plot_legend,
+           design = layout) & theme(plot.margin = unit(c(0,0,0.1,0.1), "cm"))
+plots.gtable <- patchworkGrob(plots)
+plots
+```
+
+```{r, eval=F}
+pm <- ggmatrix(
+  list( p_idms_enzymatic_distribution,NULL,NULL,
+       p_jaffe_vs_enzymatic,  p_idms_jaffe_distribution,NULL,
+       p_enzymatic_idms_vs_jaffe_nonidms, p_jaffe_idms_vs_jaffe_nonidms, p_nonidms_jaffe_distribution),
+  nrow = 3, ncol = 3,
+  xAxisLabels = c("IDMS Enzymatic", "IDMS Jaffe", "Non-IDMS Jaffe"),
+  yAxisLabels = c("IDMS Enzymatic", "IDMS Jaffe", "Non-IDMS Jaffe"),
+  showXAxisPlotLabels = FALSE,
+  showStrips = TRUE # default
+)
+pm
+```
+
+```{r}
 p1 <- df_mixed %>%
   ggplot(aes(x = x, 
              y = Creat, fill = Centre)) + 
   geom_boxplot(position = "dodge", width = 0.9) + 
-  # facet_wrap(~Creatinine_type) +
+  facet_wrap(~Creatinine_type) +
   stat_compare_means(aes(x = 10^Creat),
                      data= df_mixed,
                      comparisons = list(c(1,2), c(1,3), c(3,2)),
@@ -700,7 +860,7 @@ p1 <- df_mixed %>%
                position = position_dodge(width = 0.9), 
                size = 2.5, colour = "white") +
   # ylim(-1.5, 2.5) + 
-  coord_trans(y = "log10", limy = c(exp(-1.8), exp(2.15))) +
+  coord_trans(y = "log10", ylim = c(exp(-1.8), exp(2.15))) +
   scale_y_continuous(breaks= c(0.3, 0.6, 1.2, 2.4, 4.8)) 
 # scale_y_continuous(breaks= c(0.3, 0.6, 1.2, 2.4, 4.8), trans = "log10")
 p1
@@ -2173,7 +2333,6 @@ Spline_model_age_creat <-
                        "log_Creat_nonIDMS" = c(-0.1, .5)), 
             control = seg.control(tol = 1e-06, it.max = 100, h = 0.1))
 Spline_model_age_creat
-
 
 Spline_model_age_creat_NoIDMS <- 
   lm(sqrt(GFR) ~ BSA + Age + Sex + log_Creat +
