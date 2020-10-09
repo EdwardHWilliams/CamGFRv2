@@ -1,6 +1,7 @@
 .Rproj.user
 .Rhistory
 .Ruserdata
+.DS_Store
 CamGFRv2.Rproj
 **.RData
 
