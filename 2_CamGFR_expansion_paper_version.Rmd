@@ -26,8 +26,8 @@ fontfamily: mathpazo
 fontsize: 11pt
 geometry: margin=1in
 keywords: Glomerular Filtration Rate, CamGFR, CKD-EPI, Carboplatin
-bibliography: /Users/willia01/Documents/Mendeley_Desktop/Bibtex/Validation_1_References.bib
-csl: /Users/willia01/Documents/Mendeley_Desktop/Bibtex/american-medical-association.csl
+bibliography: ref/Validation_1_References.bib
+csl: ref/american-medical-association.csl
 ---
 
 \beginsupplement
