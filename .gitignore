@@ -8,6 +8,10 @@ CamGFRv2.Rproj
 *_cache
 *_files
 
+# latex files sticking around when compile failed
+*.log
+*.tex
+
 # actual data
 All_clean_GFR_data.csv
 Addenbrookes_combined_longitudinal_clean_GFR_data.csv

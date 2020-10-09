@@ -101,7 +101,6 @@ Adden_long_combined <-
       norm_GFR_expected = col_double(),
       Radiopharm = col_character(),
       "Ordering Dept" = col_character(),
-
       "VD L" = col_double(),
       Which_EPIC = col_character(),
       "+/- ml/min" = col_double(),
