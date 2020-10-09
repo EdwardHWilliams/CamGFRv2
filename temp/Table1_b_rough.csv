@@ -1,5 +1,5 @@
-﻿Centre,Total samples,Total patients,IDMS creatinine,Enzymatic creatinine,Solid tumour,Hematology,Non-cancer,Female,Repeat patients,Race - Black
-Cambridge,4983,4557,2148,1118,3952,769,262,2790,428,10
-Gothenburg,656,627,656,656,639,17,0,363,29,0
-Manchester,2056,2056,279,0,2056,0,0,1235,0,19
-Total,7695,7240,3083,1774,6647,786,262,4388,457,29
+﻿Centre,Total samples,Total patients,IDMS creatinine,Enzymatic creatinine,Solid tumour,Hematology,Non-cancer,Female,Repeat patients
+Cambridge,4983,4557,2148,1118,3952,769,262,2790,428
+Gothenburg,656,627,656,656,639,17,0,363,29
+Manchester,2056,2056,279,0,2056,0,0,1235,0
+Total,7695,7240,3083,1774,6647,786,262,4388,457
