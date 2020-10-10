@@ -2386,27 +2386,35 @@ Expansion_data_fit <- Expansion_data_fit %>%
          log_Creat_IDMS_SexF = log_Creat_IDMS * (Sex == "F"), 
          log_Creat_nonIDMS_SexM = log_Creat_nonIDMS * (Sex == "M"), 
          log_Creat_nonIDMS_SexF = log_Creat_nonIDMS * (Sex == "F")) %>%
-  mutate(log_Age = log(Age), 
-         log_GFR = log(GFR), 
+  mutate(log_GFR = log(GFR), 
          SexF = Sex == "F")
 
-Expansion_data_fit %>%
-  select(Sex, Creatinine_type, log_Creat_nonIDMS_SexF)
+Expansion_data <- Expansion_data %>%
+  mutate(log_Creat_SexM = log_Creat * (Sex == "M"), 
+         log_Creat_SexF = log_Creat * (Sex == "F")) %>%
+  mutate(log_Creat_IDMS_SexM = log_Creat_IDMS * (Sex == "M"), 
+         log_Creat_IDMS_SexF = log_Creat_IDMS * (Sex == "F"), 
+         log_Creat_nonIDMS_SexM = log_Creat_nonIDMS * (Sex == "M"), 
+         log_Creat_nonIDMS_SexF = log_Creat_nonIDMS * (Sex == "F")) %>%
+  mutate(log_GFR = log(GFR), 
+         SexF = Sex == "F")
+
 
 set.seed(123)
-Refit_CKD <- lm(log_GFR ~ Creatinine_type + BSA + log_Age + 
+Refit_CKD <- lm(log_GFR ~ Creatinine_type + BSA + Age + 
                   log_Creat_IDMS_SexM + log_Creat_IDMS_SexF + 
                   log_Creat_nonIDMS_SexM + log_Creat_nonIDMS_SexF + SexF,
      data = Expansion_data_fit) %>%
   segmented(obj = .,  
             seg.Z = ~log_Creat_IDMS_SexM + log_Creat_IDMS_SexF + 
               log_Creat_nonIDMS_SexM + log_Creat_nonIDMS_SexF,
-            psi = list("log_Creat_IDMS_SexM" = 0, 
-                       "log_Creat_IDMS_SexF" = 0, 
-                       "log_Creat_nonIDMS_SexM" = 0, 
-                       "log_Creat_nonIDMS_SexF" = 0),
+            psi = list("log_Creat_IDMS_SexM" = -0.1, 
+                       "log_Creat_IDMS_SexF" = -0.1, 
+                       "log_Creat_nonIDMS_SexM" = -0.1, 
+                       "log_Creat_nonIDMS_SexF" = -0.1),
             control = seg.control(tol = 1e-06, it.max = 100, h = 0.1))
 Refit_CKD
+
 
 ```
 
@@ -2417,14 +2425,14 @@ and $\kappa$ depend on Sex.
 
 \begin{align*}
 GFR &= 
-141\times \text{min}\left(\frac{Scr}{\kappa}, 1\right)^{\alpha} \times \text{max}\left(\frac{Scr}{\kappa}, 1\right)^{-1.209} \times Age^{0.993} \times (1+ 0.018Sex_F) \\
-  &= \beta_0\times \text{min}\left(\frac{Scr}{\kappa}, 1\right)^{\alpha} \times \text{max}\left(\frac{Scr}{\kappa}, 1\right)^{\gamma} \times Age^{\beta_1} \times (1+ \beta_3Sex_F) \\
+141\times \text{min}\left(\frac{Scr}{\kappa}, 1\right)^{\alpha} \times \text{max}\left(\frac{Scr}{\kappa}, 1\right)^{-1.209} \times {0.993}^Age \times (1+ 0.018Sex_F) \\
+  &= \beta_0\times \text{min}\left(\frac{Scr}{\kappa}, 1\right)^{\alpha} \times \text{max}\left(\frac{Scr}{\kappa}, 1\right)^{\gamma} \times \beta_1^{Age} \times (1+ \beta_3Sex_F) \\
 \log(GFR)  &= \log(\beta_0) + \alpha\text{min}\left(\log(Scr) - \log(\kappa), 0\right) + \gamma \text{max}\left(\log(Scr) - \log(\kappa), 0\right) \\ 
-& \quad + \beta_1\log(Age) \times \log(1+ \beta_3)Sex_F \\
+& \quad + \log(\beta_1)Age + \log(1+ \beta_3)Sex_F \\
 &= \log(\beta_0) + \alpha\log(Scr) - \alpha\log(\kappa) + (\gamma-\alpha)\left(\log(SCr)-\log(\kappa)\right)[\text{if } \log(Scr) > \log(\kappa)] \\
-& \quad + \beta_1\log(Age) + \log(1+ \beta_3)Sex_F \\
+& \quad + \log(\beta_1)Age + \log(1+ \beta_3)Sex_F \\
 &= \log(\beta_0) + \alpha_M\log(\kappa_M) + \alpha\log(Scr) + (\gamma-\alpha)\left(\log(SCr)-\log(\kappa)\right)[\text{if } \log(Scr) > \log(\kappa)] \\
-& \quad + \beta_1\log(Age) + \left(\log(1+ \beta_3) - \alpha_M\log(\kappa_M) + \alpha_F\log(\kappa_F)\right)Sex_F 
+& \quad + \log(\beta_1)Age + \left(\log(1+ \beta_3) - \alpha_M\log(\kappa_M) + \alpha_F\log(\kappa_F)\right)Sex_F 
 \end{align*}
 Where $\alpha_M$ and $\kappa_M$ are the values of $\alpha$ and $\kappa$ when Sex is male. In the above form the coefficents of the CKD-EPI can be directly comapred with the coefficients of the refitted CKD-EPI using the segmented package. Namely,
 \begin{align*}
@@ -2432,11 +2440,59 @@ a &= \log(\beta_0) + \alpha_M\log(\kappa_M) \\
 b_1 &= \alpha \\
 b_2 &= \gamma - \alpha \\
 c &= \log(\kappa) \\
-b_2 &= \beta_2 \\
+b_2 &= \log(\beta_2) \\
 b_3 &= \log(1+ \beta_3) - \alpha_M\log(\kappa_M) + \alpha_F\log(\kappa_F)
 \end{align*}
 
+```{r refitting_CKD_EIP, eval = T, include = F}
 
+coef = Refit_CKD$coefficients
+psi = Refit_CKD$psi[ ,"Est."]
+
+
+
+beta_0 = exp(coef[["(Intercept)"]] +
+               coef[["log_Creat_nonIDMS_SexM"]]*psi["psi1.log_Creat_IDMS_SexM"] )
+alpha_M = coef[["log_Creat_nonIDMS_SexM"]] 
+alpha_F = coef[["log_Creat_nonIDMS_SexF"]] 
+gamma_M = coef[["log_Creat_nonIDMS_SexM"]] + coef[["U1.log_Creat_nonIDMS_SexM"]]
+gamma_F = coef[["log_Creat_nonIDMS_SexF"]] + coef[["U1.log_Creat_nonIDMS_SexF"]]
+kappa_M = exp(psi["psi1.log_Creat_nonIDMS_SexM"])
+kappa_F = exp(psi["psi1.log_Creat_nonIDMS_SexF"])
+
+alpha_M_IDMS = coef[["log_Creat_IDMS_SexM"]] 
+alpha_F_IDMS = coef[["log_Creat_IDMS_SexF"]] 
+gamma_M_IDMS = coef[["log_Creat_IDMS_SexM"]] + coef[["U1.log_Creat_IDMS_SexM"]]
+gamma_F_IDMS = coef[["log_Creat_IDMS_SexF"]] + coef[["U1.log_Creat_IDMS_SexF"]]
+kappa_M_IDMS = exp(psi["psi1.log_Creat_IDMS_SexM"])
+kappa_F_IDMS = exp(psi["psi1.log_Creat_IDMS_SexF"])
+
+
+beta_1 =  exp(coef[["Age"]])
+beta_3 = exp(coef[["SexFTRUE"]] - 
+               coef[["log_Creat_nonIDMS_SexM"]]*psi["psi1.log_Creat_IDMS_SexM"] + 
+               coef[["log_Creat_nonIDMS_SexF"]]*psi["psi1.log_Creat_IDMS_SexF"]) -1
+
+```
+ 
+ The refitted CKD-EPI has the floowing coefficents:
+
+\begin{equation*}
+GFR = 
+117\times\text{min}\left(\frac{Scr}{\kappa}, 1\right)^{\alpha} \times \text{max}\left(\frac{Scr}{\kappa}, 1\right)^{\gamma} \times Age^{0.993} \times (1- 0.016Sex_F)
+\end{equation*}
+where for non-IDMS data
+\begin{itemize}
+\item $\kappa$ = 1.000 if male and 0.798 if female
+\item $\alpha$ = -0.457 if male and -0.410 if female
+\item $\gamma$ = -1.138 if male and -1.149 if female
+\end{itemize} 
+while for IDMS cratinien data
+\begin{itemize}
+\item $\kappa$ = 0.870 if male and 0.792 if female
+\item $\alpha$ = -0.293 if male and -0.430 if female
+\item $\gamma$ = -0.984 if male and -1.118 if female
+\end{itemize} 
 
 
 
@@ -2519,7 +2575,7 @@ p2 <- Expansion_data_fit %>%
   scale_colour_manual(values = tol2qualitative, name = "Sex") + 
   ylim(-2, 1)
 p2
-s
+
 ```
 
 
@@ -2572,6 +2628,7 @@ Validation_fitted_df_all <-  Expansion_data %>%
   # mutate(BIC_model = predict(BIC_model, newdata = .)^2) %>%
   # mutate(Spline_model_age = predict(Spline_model_age, newdata = .)^2) %>%
   # mutate(Spline_model_creat = predict(Spline_model_creat, newdata = .)^2) %>%
+  mutate(Refit_CKD = exp(predict(Refit_CKD, newdata = .))) %>%
   mutate(Spline_model_age_creat = predict(Spline_model_age_creat, newdata = .)^2) %>%
   mutate(MDRD = ifelse(Creatinine_type == "IDMS", MDRD_adj_IDMS, MDRD_adj)) %>% 
   rename(`CKD-EPI` = CKD_adj, LM = LM_adj, FAS = FAS_adj) %>%
@@ -2582,7 +2639,7 @@ Validation_fitted_df_all <-  Expansion_data %>%
 
 Validation_fitted_df <- Validation_fitted_df_all %>%
   filter(equation %in% c("Refit_CamGFR", "CKD-EPI", "MDRD", "LM", "FAS",
-                         "CamGFR_v1")) %>%
+                         "CamGFR_v1", "Refit_CKD")) %>%
   mutate(equation = factor(equation,
                            levels = c("Refit_CamGFR", "CamGFR_v1",
                                       "LM","CKD-EPI", "FAS", "MDRD"),
