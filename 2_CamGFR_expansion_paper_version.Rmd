@@ -2323,7 +2323,11 @@ p4 <- ggplot(Expansion_data_fit, aes(x = Age)) +
 p <- plot_grid(p1,p3,p2,p4, labels = c("A", "C", "B", "D"), axis = "btlr",
                align = "hv", label_size = 15)
 
-p
+p 
+
+ggsave(file.path(fig_export_dir, "Spline_model_shape_plot.pdf"), 
+       plot = p, 
+       width = 12, height = 9)
 
 ```
 
@@ -2413,7 +2417,9 @@ Refit_CKD <- lm(log_GFR ~ Creatinine_type + BSA + Age +
                        "log_Creat_nonIDMS_SexM" = -0.1, 
                        "log_Creat_nonIDMS_SexF" = -0.1),
             control = seg.control(tol = 1e-06, it.max = 100, h = 0.1))
-Refit_CKD
+Refit_CKD %>% tidy() %>%
+  filter(!str_detect(term, "psi"))
+Refit_CKD$psi %>% tidy()
 
 
 ```
@@ -2444,7 +2450,7 @@ b_2 &= \log(\beta_2) \\
 b_3 &= \log(1+ \beta_3) - \alpha_M\log(\kappa_M) + \alpha_F\log(\kappa_F)
 \end{align*}
 
-```{r refitting_CKD_EIP, eval = T, include = F}
+```{r refitting_CKD-EPI, eval = T, include = F}
 
 coef = Refit_CKD$coefficients
 psi = Refit_CKD$psi[ ,"Est."]
@@ -2473,13 +2479,17 @@ beta_3 = exp(coef[["SexFTRUE"]] -
                coef[["log_Creat_nonIDMS_SexM"]]*psi["psi1.log_Creat_IDMS_SexM"] + 
                coef[["log_Creat_nonIDMS_SexF"]]*psi["psi1.log_Creat_IDMS_SexF"]) -1
 
+
+
+
+
 ```
  
- The refitted CKD-EPI has the floowing coefficents:
+The refitted CKD-EPI has the floowing coefficents:
 
 \begin{equation*}
 GFR = 
-117\times\text{min}\left(\frac{Scr}{\kappa}, 1\right)^{\alpha} \times \text{max}\left(\frac{Scr}{\kappa}, 1\right)^{\gamma} \times Age^{0.993} \times (1- 0.016Sex_F)
+117\times\text{min}\left(\frac{Scr}{\kappa}, 1\right)^{\alpha} \times \text{max}\left(\frac{Scr}{\kappa}, 1\right)^{\gamma} \times Age^{0.993} \times (1- 0.016Sex_F) 
 \end{equation*}
 where for non-IDMS data
 \begin{itemize}
@@ -2494,9 +2504,33 @@ while for IDMS cratinien data
 \item $\gamma$ = -0.984 if male and -1.118 if female
 \end{itemize} 
 
+```{r, eval = T, include = F}
+
+CKD_coef = data.frame(Coef = 
+                        c("beta_0", "alpha_M", "alpha_F", "gamma_M", "gamma_F", 
+                          "kappa_M", "kappa_F", "alpha_M_IDMS", "alpha_F_IDMS", 
+                          "gamma_M_IDMS", "gamma_F_IDMS", "kappa_M_IDMS", 
+                          "kappa_F_IDMS", "beta_1", "beta_3"),
+                      Refit_CKD_EPI = 
+                        c(beta_0, alpha_M, alpha_F, gamma_M, gamma_F, 
+                          kappa_M, kappa_F, alpha_M_IDMS, alpha_F_IDMS, 
+                          gamma_M_IDMS, gamma_F_IDMS, kappa_M_IDMS, 
+                          kappa_F_IDMS, beta_1, beta_3) %>%
+                        signif(digits = 3), 
+                      Original_CKD_EPI = 
+                        c(141, -0.411, -0.329, -1.209, -1.209, 
+                          0.9, 0.7, -0.411, -0.329, 
+                          -1.209, -1.209, 0.9, 
+                          0.7, 0.993, 0.018))
+                                    
+CKD_coef                       
+                        
+```
 
 
-```{r PLOT_spline_CKD, eval = T, echo = F, fig.height=6, fig.width=6, fig.cap="\\label{fig:spline_shape}Shape of Creatine relationship in the CKD-EPI model and our refitted version"}
+
+
+```{r PLOT_spline_CKD, eval = T, echo = F, fig.height=3.5, fig.width=6, fig.cap="\\label{fig:spline_shape}Shape of Creatine relationship in the CKD-EPI model and our refitted version"}
 
 CKD_creat_IDMS_M_func <- function(x, Sex){
   coef = Refit_CKD$coefficients
@@ -2552,10 +2586,10 @@ p1 <- Expansion_data_fit %>%
   geom_line(data = filter(Expansion_data_fit, Sex == "F"),
             aes(y = Actual_CKD_creat_F_func(log(Creat), "F"), colour = "F", linetype = "Original")) +
   geom_rug(aes(colour = Sex), alpha =.2) + 
-  ggplot_theme() + ylab("Effect of log(SCr)") +  xlab("log(SCr)") +
+  ggplot_theme() + ylab("Effect of log(SCr)") +  xlab("non-IDMS log(SCr)") +
   scale_colour_manual(values = tol2qualitative, name = "Sex") + 
   ylim(-2, 1)
-p1
+
 
 
 
@@ -2571,10 +2605,17 @@ p2 <- Expansion_data_fit %>%
   geom_line(data = filter(Expansion_data_fit, Sex == "F"),
             aes(y = Actual_CKD_creat_F_func(log(Creat), "F"), colour = "F", linetype = "Original")) +
   geom_rug(aes(colour = Sex), alpha =.2) + 
-  ggplot_theme() + ylab("Effect of log(SCr)") +  xlab("log(SCr)") +
+  ggplot_theme() + ylab("Effect of log(SCr)") +  xlab("IDMS log(SCr)") +
   scale_colour_manual(values = tol2qualitative, name = "Sex") + 
   ylim(-2, 1)
-p2
+
+
+p <- plot_grid(p1,p2, labels = c("A", "B"), axis = "btlr",
+               align = "hv", label_size = 15)
+
+ggsave(file.path(fig_export_dir, "Refit_model_shape_plot.pdf"), 
+       plot = p, 
+       width = 12, height = 9)
 
 ```
 
@@ -3653,6 +3694,7 @@ JNCI_fitted_values %>%
 
 
 ```
+
 
 
 ```{r save_enviroment, include=F, eval = F}
