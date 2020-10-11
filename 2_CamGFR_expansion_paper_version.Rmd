@@ -143,15 +143,15 @@ Expansion_data <- All_data %>%
   mutate(Diagnosis = ifelse(Diagnosis == "Non-cancer", "Unknown", Diagnosis)) %>%
   select_if(.predicate = not_all_na)
 
-# Filter extreme creatinin values
+# Filter extreme creatinine values
 Expansion_data <- Expansion_data %>%
-  # remove creatinien values less than 18 as some 
+  # remove creatinine values less than 18 as some 
   filter(Creat*88.4 > 18) %>%
   filter(Creat*88.4 < 400) 
 
 # Filter repeat measurements
 Expansion_data <- Expansion_data %>%
-  #   filter(GFR_index == 1) %>% # keeping only a patients first GFR measurment
+  #   filter(GFR_index == 1) %>% # keeping only a patients first GFR measurement
   filter(Date_GFR_diff > 365 | is.na(Date_GFR_diff))
 nrow(Expansion_data)
 
@@ -3644,7 +3644,7 @@ p
 
 ## CamGFR v2 on JNCI data
 
-```{r compare_models_using_JNCI_paper_data, eval = F, echo = F}
+```{r compare_models_using_JNCI_paper_data, eval = T, echo = F}
 
 JNCI_fitted_values <- New_nonIDMS_data_JNCI %>%
   filter(!(Centre %in% c("Cambridge", "Manchester"))) %>%
@@ -3694,6 +3694,92 @@ JNCI_fitted_values %>%
 
 
 ```
+
+## Leave-out-one-centre cross-valiation
+
+### Create two centre model
+
+```{r fit_two_centre_models, eval = F, echo = F}
+
+model_formula_interaction <-
+  sqrt_GFR ~ Age + BSA + Sex + Creatinine_type:log_Creat +
+  Creatinine_type:I(log_Creat^2) + Creatinine_type:I(log_Creat^3) +
+  Age:BSA + Age:Sex + Creatinine_type 
+
+Refit_CamGFR_Goth <- Expansion_data %>%
+  filter(Centre != "Gothenburg") %>% 
+  lm(model_formula_interaction, data = .)
+Refit_CamGFR_Man<- Expansion_data %>%
+  filter(Centre != "Manchester") %>% 
+  lm(model_formula_interaction, data = .)
+Refit_CamGFR_Cam <- Expansion_data %>%
+  filter(Centre != "Cambridge") %>% 
+  lm(model_formula_interaction, data = .)
+
+mutate(tidy(Refit_CamGFR_Goth), Missing_centre = "Gothenburg") %>%
+  bind_rows(mutate(tidy(Refit_CamGFR_Man), Missing_centre = "Manchester")) %>%
+  bind_rows(mutate(tidy(Refit_CamGFR_Cam), Missing_centre = "Cambridge")) %>%
+  select(term, estimate, std.error, Missing_centre) %>% 
+  pivot_longer(estimate:std.error) %>%
+  pivot_wider(names_from = Missing_centre, values_from = value) %>%
+  arrange(name)
+
+install.packages("tidyverse")
+```
+
+### Validate on remaining centre
+
+```{r fit_two_centre_models, eval = F, echo = F}
+Validation_fitted_df_Goth <-  Expansion_data %>%
+  filter(Centre == "Gothenburg") %>%
+  bind_cols(GFR_fitted_values_eth(.)) %>%
+  mutate(Refit_CamGFR_Goth = predict(Refit_CamGFR_Goth, newdata = .)^2) %>%
+  mutate(MDRD = ifelse(Creatinine_type == "IDMS", MDRD_adj_IDMS, MDRD_adj)) %>% 
+  rename(`CKD-EPI` = CKD_adj, LM = LM_adj, FAS = FAS_adj) %>%
+  gather(key = equation, value = fitted,
+         Refit_CamGFR_Goth, `CKD-EPI`, MDRD, LM, FAS) %>%
+  mutate(resid = GFR - fitted)
+
+Results_CreatType_Goth <- Validation_fitted_df_Goth %>%
+  group_by(equation, Creatinine_type) %>%
+  Statistic_summary_withP20_both() %>%
+  arrange(Creatinine_type, RMSE)
+
+
+Validation_fitted_df_Man <-  Expansion_data %>%
+  filter(Centre == "Manchester") %>%
+  bind_cols(GFR_fitted_values_eth(.)) %>%
+  mutate(Refit_CamGFR_Goth = predict(Refit_CamGFR_Man, newdata = .)^2) %>%
+  mutate(MDRD = ifelse(Creatinine_type == "IDMS", MDRD_adj_IDMS, MDRD_adj)) %>% 
+  rename(`CKD-EPI` = CKD_adj, LM = LM_adj, FAS = FAS_adj) %>%
+  gather(key = equation, value = fitted,
+         Refit_CamGFR_Goth, `CKD-EPI`, MDRD, LM, FAS) %>%
+  mutate(resid = GFR - fitted)
+
+Results_CreatType_Man <- Validation_fitted_df_Man %>%
+  group_by(equation, Creatinine_type) %>%
+  Statistic_summary_withP20_both() %>%
+  arrange(Creatinine_type, RMSE)
+
+Validation_fitted_df_Cam <-  Expansion_data %>%
+  filter(Centre == "Cambridge") %>%
+  bind_cols(GFR_fitted_values_eth(.)) %>%
+  mutate(Refit_CamGFR_Goth = predict(Refit_CamGFR_Cam, newdata = .)^2) %>%
+  mutate(MDRD = ifelse(Creatinine_type == "IDMS", MDRD_adj_IDMS, MDRD_adj)) %>% 
+  rename(`CKD-EPI` = CKD_adj, LM = LM_adj, FAS = FAS_adj) %>%
+  gather(key = equation, value = fitted,
+         Refit_CamGFR_Goth, `CKD-EPI`, MDRD, LM, FAS) %>%
+  mutate(resid = GFR - fitted)
+
+Results_CreatType_Cam <- Validation_fitted_df_Cam %>%
+  group_by(equation, Creatinine_type) %>%
+  Statistic_summary_withP20_both() %>%
+  arrange(Creatinine_type, RMSE)
+
+Results_CreatType_Cam
+
+```
+
 
 
 
