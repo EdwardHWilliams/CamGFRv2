@@ -534,6 +534,37 @@ ggsave(filename= "Comparison_three_dataset_variables.pdf",
        plot = Boxplots_variables, width = 12, height = 9)
 ```
 
+##
+
+
+```{r checking_patient_numbers, eval = F, include=F}
+
+# Non-cancer numbers
+Non_cancer = Expansion_data %>% 
+  filter(Patient_type %in% c("Non-Cancer", "Unknown")) 
+Non_cancer %>% pull(Patient_type) %>% table()
+Non_cancer %>% pull(PatientID) %>% unique() %>% length()
+
+Expansion_data %>% 
+  filter(!(Patient_type %in% c("Non-Cancer", "Unknown"))) %>%
+  filter(PatientID %in% (Non_cancer %>% pull(PatientID) %>% unique())) %>% pull(PatientID)
+  
+# Gothenburg non-cancer
+All_data %>% 
+  filter(Centre == "Goteborg") %>%
+  filter(Diagnosis == "Non-cancer") %>% pull(PatientID) -> Gothenburg_nonCancer
+Expansion_data %>%
+  filter(PatientID %in% Gothenburg_nonCancer) %>%
+  pull(Diagnosis_full)
+Expansion_data %>% 
+  filter(Centre == "Gothenburg", 
+         Diagnosis == "Unknown")
+  
+
+```
+
+
+
 ## Ethnical data
 For a subsection of the patient population (specifically the majority of
 patients from Manchester and the majority of new patients from Addenbrookes) we
@@ -598,7 +629,7 @@ ggsave(file.path(fig_export_dir, "Boxplot_ethnicity.pdf"),
 
 
 
-## Comparing Creatinien methods: IDMS to non-IDMS
+# Comparing Creatinien methods: IDMS to non-IDMS
 We next aimed to compare IDMS creatinine values to non-IDMS creatinine values in
 more detail to assess whether our model would need to be adjusted in order to be
 suitable for IDMS creatinine measurements.
