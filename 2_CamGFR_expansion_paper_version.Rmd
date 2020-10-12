@@ -14,7 +14,7 @@ output:
     # citation_package: natbib
     fig_caption: yes
     keep_tex: yes
-    latex_engine: xelatex
+    latex_engine: pdflatex
   word_document: default
   html_document:
     df_print: paged
@@ -32,8 +32,8 @@ csl: ref/american-medical-association.csl
 
 \beginsupplement
 
-```{r load_envrirment, include=F, eval = F, echo = F}
-#load('2_CamGFR_expansion.RData')
+```{r load_environment, include=F, eval = T, echo = F}
+if (file.exists('2_CamGFR_expansion.RData')) load('2_CamGFR_expansion.RData')
 ```
 
 
