@@ -3919,7 +3919,7 @@ install.packages("tidyverse")
 
 ### Validate on remaining centre
 
-```{r fit_two_centre_models, eval = F, echo = F}
+```{r validate_two_centre_models, eval = F, echo = F}
 Validation_fitted_df_Goth <-  Expansion_data %>%
   filter(Centre == "Gothenburg") %>%
   bind_cols(GFR_fitted_values_eth(.)) %>%
@@ -3934,7 +3934,6 @@ Results_CreatType_Goth <- Validation_fitted_df_Goth %>%
   group_by(equation, Creatinine_type) %>%
   Statistic_summary_withP20_both() %>%
   arrange(Creatinine_type, RMSE)
-
 
 Validation_fitted_df_Man <-  Expansion_data %>%
   filter(Centre == "Manchester") %>%
@@ -3967,10 +3966,7 @@ Results_CreatType_Cam <- Validation_fitted_df_Cam %>%
   arrange(Creatinine_type, RMSE)
 
 Results_CreatType_Cam
-
 ```
-
-
 
 
 ```{r save_enviroment, include=F, eval = F}
