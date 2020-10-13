@@ -1505,7 +1505,7 @@ distribution = plot_data %>%
   rowwise() %>%
   mutate(grid = list(seq(min, max, length = 100))) %>%
   mutate(density = list(dnorm(grid, mean, sd))) %>% 
-  unnest() 
+  unnest(cols = c(grid, density)) 
 
 plot_data %>%
   ggplot() +
@@ -1536,13 +1536,13 @@ p1 = plot_data %>%
 
 p2 = plot_data %>%
   arrange(name, value) %>%
-  nest(value) %>%
+  nest(data = c(value)) %>%
   rowwise() %>%
   mutate(mean = mean(data$value), 
          sd = sd(data$value), 
          len = length(data$value)) %>%
   mutate(quantiles = list(qnorm(p = (1:len)/(len+1), mean = mean, sd = sd))) %>%
-  unnest() %>%
+  unnest(cols = c(data, quantiles)) %>%
   ggplot(aes(x = value, y = quantiles)) +
   geom_point(alpha = 0.2) + 
   geom_abline(intercept = 0, slope = 1) + 
