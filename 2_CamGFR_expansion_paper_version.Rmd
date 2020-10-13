@@ -70,6 +70,7 @@ library(scales)
 library(ggsignif)
 library(googlesheets)
 library(broom.mixed)
+library(reshape2)
 
 # Load the data and helper function
 source("Clean_data.R")
@@ -695,7 +696,7 @@ df_mixed <- Expansion_data %>%
   filter(GFR_index == 1)
 ```
 
-```{r, eval=F}
+```{r, eval=T}
 title_size <- 10
 text_size <- 8
 centre_colors <- c(Cambridge = "#5b4e9f", Gothenburg = "#117733",
@@ -740,9 +741,18 @@ enzymatic_idms_vs_jaffe_nonidms <-  df_mixed %>%
   filter(x %in% c("IDMS Enzymatic", "Non-IDMS Jaffe")) %>%
   mutate(method = "Non-IDMS Jaffe")
 p_enzymatic_idms_vs_jaffe_nonidms <- ggplot(data=enzymatic_idms_vs_jaffe_nonidms,
-                           aes(y = x, x = Creat, fill=x)) + 
+                           aes(y = x, x = Creat, fill=x))
+p_enzymatic_idms_vs_jaffe_nonidms + 
   geom_violin(position = "dodge", width = 0.9, show.legend = showlegends) + 
   scale_fill_manual(values=method_colors) +
+  stat_compare_means(aes(y = 10^Creat),
+                     comparisons = list(c(1,2)),
+                     method = "t.test",
+                     label = "p.signif",
+                     # bracket.size = 0.3, 
+                     inherit.aes = F, 
+                     #label.y = c(4.6, 5.5, 6.8) 
+  ) +
   facet_wrap(method ~ ., strip.position = "left") +
   labs(fill = "Method",
        x = "SCr",
@@ -768,7 +778,8 @@ p_idms_jaffe_distribution <- ggplot(data=idms_jaffe,
         axis.title = element_text(size=title_size))
 
 idms_enzymatic <-  df_mixed %>%
-  filter(x=="IDMS Enzymatic")
+  filter(x=="IDMS Enzymatic") %>%
+  mutate(xcopy = x)
 p_idms_enzymatic_distribution <- ggplot(data=idms_enzymatic,
                            aes(x= Creat, color=Centre)) + 
   geom_density(show.legend = showlegends) +
@@ -834,21 +845,9 @@ plots <- wrap_plots(a = p_idms_enzymatic_distribution,
            design = layout) & theme(plot.margin = unit(c(0,0,0.1,0.1), "cm"))
 plots.gtable <- patchworkGrob(plots)
 plots
+
 ```
 
-```{r, eval=F}
-pm <- ggmatrix(
-  list( p_idms_enzymatic_distribution,NULL,NULL,
-       p_jaffe_vs_enzymatic,  p_idms_jaffe_distribution,NULL,
-       p_enzymatic_idms_vs_jaffe_nonidms, p_jaffe_idms_vs_jaffe_nonidms, p_nonidms_jaffe_distribution),
-  nrow = 3, ncol = 3,
-  xAxisLabels = c("IDMS Enzymatic", "IDMS Jaffe", "Non-IDMS Jaffe"),
-  yAxisLabels = c("IDMS Enzymatic", "IDMS Jaffe", "Non-IDMS Jaffe"),
-  showXAxisPlotLabels = FALSE,
-  showStrips = TRUE # default
-)
-pm
-```
 
 ```{r}
 p1 <- df_mixed %>%
@@ -1745,7 +1744,6 @@ get_upper_tri <- function(cormat){
 
 upper_tri <- get_upper_tri(cormat)
 
-library(reshape2)
 melted_cormat <- melt(upper_tri, na.rm = TRUE)
 
 p <- ggplot(data = melted_cormat, aes(Var2, Var1, fill = value))+
