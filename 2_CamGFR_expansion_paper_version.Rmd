@@ -3760,7 +3760,7 @@ install.packages("tidyverse")
 
 ### Validate on remaining centre
 
-```{r fit_two_centre_models, eval = F, echo = F}
+```{r validate_two_centre_models, eval = F, echo = F}
 Validation_fitted_df_Goth <-  Expansion_data %>%
   filter(Centre == "Gothenburg") %>%
   bind_cols(GFR_fitted_values_eth(.)) %>%
