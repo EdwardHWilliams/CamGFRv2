@@ -3714,7 +3714,8 @@ JNCI_fitted_values %>%
   # select(-P20_dose, -P20_dose_lwr, -P20_dose_upr) %>%
   arrange(RMSE) %>%
   Clean_results() %>%
-  select(-P20) %>% rename("Dose P20" = P20_dose) %>% 
+  select(-P20) %>%
+  rename("Dose P20" = P20_dose) %>% 
   write_csv(path = file.path(fig_export_dir, "Results_JNCI_data_all.csv"))
 
 JNCI_fitted_values %>%
@@ -3723,7 +3724,7 @@ JNCI_fitted_values %>%
   # select(-P20_dose, -P20_dose_lwr, -P20_dose_upr) %>%
   arrange(Centre, RMSE) %>%
   Clean_results() %>%
-  select(-P20) %>% rename("Dose P20" = P20_dose) %>%
+  select(-P20) %>%
   rename("Dose P20" = P20_dose) %>% 
   write_csv(path = file.path(fig_export_dir, "Results_JNCI_data_by_centre.csv"))
 
