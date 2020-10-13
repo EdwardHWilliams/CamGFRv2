@@ -143,15 +143,15 @@ Expansion_data <- All_data %>%
   mutate(Diagnosis = ifelse(Diagnosis == "Non-cancer", "Unknown", Diagnosis)) %>%
   select_if(.predicate = not_all_na)
 
-# Filter extreme creatinin values
+# Filter extreme creatinine values
 Expansion_data <- Expansion_data %>%
-  # remove creatinien values less than 18 as some 
+  # remove creatinine values less than 18 as some 
   filter(Creat*88.4 > 18) %>%
   filter(Creat*88.4 < 400) 
 
 # Filter repeat measurements
 Expansion_data <- Expansion_data %>%
-  #   filter(GFR_index == 1) %>% # keeping only a patients first GFR measurment
+  #   filter(GFR_index == 1) %>% # keeping only a patients first GFR measurement
   filter(Date_GFR_diff > 365 | is.na(Date_GFR_diff))
 nrow(Expansion_data)
 
@@ -534,6 +534,37 @@ ggsave(filename= "Comparison_three_dataset_variables.pdf",
        plot = Boxplots_variables, width = 12, height = 9)
 ```
 
+##
+
+
+```{r checking_patient_numbers, eval = F, include=F}
+
+# Non-cancer numbers
+Non_cancer = Expansion_data %>% 
+  filter(Patient_type %in% c("Non-Cancer", "Unknown")) 
+Non_cancer %>% pull(Patient_type) %>% table()
+Non_cancer %>% pull(PatientID) %>% unique() %>% length()
+
+Expansion_data %>% 
+  filter(!(Patient_type %in% c("Non-Cancer", "Unknown"))) %>%
+  filter(PatientID %in% (Non_cancer %>% pull(PatientID) %>% unique())) %>% pull(PatientID)
+  
+# Gothenburg non-cancer
+All_data %>% 
+  filter(Centre == "Goteborg") %>%
+  filter(Diagnosis == "Non-cancer") %>% pull(PatientID) -> Gothenburg_nonCancer
+Expansion_data %>%
+  filter(PatientID %in% Gothenburg_nonCancer) %>%
+  pull(Diagnosis_full)
+Expansion_data %>% 
+  filter(Centre == "Gothenburg", 
+         Diagnosis == "Unknown")
+  
+
+```
+
+
+
 ## Ethnical data
 For a subsection of the patient population (specifically the majority of
 patients from Manchester and the majority of new patients from Addenbrookes) we
@@ -598,7 +629,7 @@ ggsave(file.path(fig_export_dir, "Boxplot_ethnicity.pdf"),
 
 
 
-## Comparing Creatinien methods: IDMS to non-IDMS
+# Comparing Creatinien methods: IDMS to non-IDMS
 We next aimed to compare IDMS creatinine values to non-IDMS creatinine values in
 more detail to assess whether our model would need to be adjusted in order to be
 suitable for IDMS creatinine measurements.
@@ -2130,6 +2161,7 @@ SFigure4_cubic_Creat_fit
 
 
 ### Spline models
+
 In additional to the above analysis we wanted to explore whether a continuous
 piecewise linear relationship might be more appropriate for the age and
 creatinine terms. This was driven by the observations above where, in Figure
@@ -2182,9 +2214,8 @@ Spline_model_age_creat_NoIDMS <-
   segmented(obj = .,  seg.Z = ~Age + log_Creat, 
             psi = list("Age" = 40, "log_Creat" = c(-0.1, .2)), 
             control = seg.control(tol = 1e-06, it.max = 100, h = 0.1))
-
-
 ```
+
 
 The shapes of the age and creatinine relationship with GFR for the piecewise
 fitted model are shown in Figure \ref{fig:spline_shape} . Surprisingly, we do
@@ -2323,34 +2354,11 @@ p4 <- ggplot(Expansion_data_fit, aes(x = Age)) +
 p <- plot_grid(p1,p3,p2,p4, labels = c("A", "C", "B", "D"), axis = "btlr",
                align = "hv", label_size = 15)
 
-p
+p 
 
-# ggsave(file.path(latex_location, "Chapter4/Figs/Spline_model_shape_plot.pdf"), 
-#        plot = p, 
-#        width = 10, height = 6)
-
-
-a = Expansion_data_fit[7,]
-a$log_Creat_IDMS
-a$log_Creat_nonIDMS
-b = a %>% 
-  mutate(Creatinine_type = "IDMS", 
-         log_Creat_IDMS = log_Creat_nonIDMS) %>%
-  mutate(log_Creat_nonIDMS = 0)
-b$log_Creat_IDMS
-b$log_Creat_nonIDMS
-c = a %>%
-  mutate(Creatinine_type = "IDMS")
-
-
-predict(Spline_model_age_creat, newdata = a)
-predict(Spline_model_age_creat, newdata = b)
-predict(Spline_model_age_creat, newdata = c)
-
-
-creat_IDMS_func(a$log_Creat_IDMS)
-creat_nonIDMS_func(a$log_Creat)
-
+ggsave(file.path(fig_export_dir, "Spline_model_shape_plot.pdf"), 
+       plot = p, 
+       width = 12, height = 9)
 
 ```
 
@@ -2392,6 +2400,257 @@ ggsave(file.path(fig_export_dir, "Spline_model_fit_plot.pdf"),
 With these three models along with the BIC and leave-out-n and refitted CamGFR
 model we move forward and compare them with the published model using our
 validation dataset.
+
+### Refitting CKD-EPI
+
+Look to refit the CKD-EPI model, including the spline points. For this we will use 
+the segmented package as above. However, GFR and Age will be modeled on the log 
+scale, as they are in the CKD-EPI model. The outputted model will have the following from, 
+\begin{equation*}
+\log(GFR) = a + b_1\log(SCr) + b_2(\log(SCr) - c)[\text{if } SCr > c] + b_3\log(Age) + b_4Sex_F
+\end{equation*}
+where $a$, $b_1$, $b_2$, $b_3$, $b_4$ and $c$ are all coefficients that are 
+estimated and $b_1$, $b_2$, and $c$ depend on both Sex and Creatinine type. 
+
+```{r refitting_CKD_EIP, eval = T, include = F}
+
+Expansion_data_fit <- Expansion_data_fit %>%
+  mutate(log_Creat_SexM = log_Creat * (Sex == "M"), 
+         log_Creat_SexF = log_Creat * (Sex == "F")) %>%
+  mutate(log_Creat_IDMS_SexM = log_Creat_IDMS * (Sex == "M"), 
+         log_Creat_IDMS_SexF = log_Creat_IDMS * (Sex == "F"), 
+         log_Creat_nonIDMS_SexM = log_Creat_nonIDMS * (Sex == "M"), 
+         log_Creat_nonIDMS_SexF = log_Creat_nonIDMS * (Sex == "F")) %>%
+  mutate(log_GFR = log(GFR), 
+         SexF = Sex == "F")
+
+Expansion_data <- Expansion_data %>%
+  mutate(log_Creat_SexM = log_Creat * (Sex == "M"), 
+         log_Creat_SexF = log_Creat * (Sex == "F")) %>%
+  mutate(log_Creat_IDMS_SexM = log_Creat_IDMS * (Sex == "M"), 
+         log_Creat_IDMS_SexF = log_Creat_IDMS * (Sex == "F"), 
+         log_Creat_nonIDMS_SexM = log_Creat_nonIDMS * (Sex == "M"), 
+         log_Creat_nonIDMS_SexF = log_Creat_nonIDMS * (Sex == "F")) %>%
+  mutate(log_GFR = log(GFR), 
+         SexF = Sex == "F")
+
+
+set.seed(123)
+Refit_CKD <- lm(log_GFR ~ Creatinine_type + BSA + Age + 
+                  log_Creat_IDMS_SexM + log_Creat_IDMS_SexF + 
+                  log_Creat_nonIDMS_SexM + log_Creat_nonIDMS_SexF + SexF,
+     data = Expansion_data_fit) %>%
+  segmented(obj = .,  
+            seg.Z = ~log_Creat_IDMS_SexM + log_Creat_IDMS_SexF + 
+              log_Creat_nonIDMS_SexM + log_Creat_nonIDMS_SexF,
+            psi = list("log_Creat_IDMS_SexM" = -0.1, 
+                       "log_Creat_IDMS_SexF" = -0.1, 
+                       "log_Creat_nonIDMS_SexM" = -0.1, 
+                       "log_Creat_nonIDMS_SexF" = -0.1),
+            control = seg.control(tol = 1e-06, it.max = 100, h = 0.1))
+Refit_CKD %>% tidy() %>%
+  filter(!str_detect(term, "psi"))
+Refit_CKD$psi %>% tidy()
+
+
+```
+
+
+So we will reduce CKD-EPI to a similar form to be able to comare coefficents. 
+CKD has the following published form, ignoring the Ethnicity term, in which $\alpoha$ 
+and $\kappa$ depend on Sex. 
+
+\begin{align*}
+GFR &= 
+141\times \text{min}\left(\frac{Scr}{\kappa}, 1\right)^{\alpha} \times \text{max}\left(\frac{Scr}{\kappa}, 1\right)^{-1.209} \times {0.993}^Age \times (1+ 0.018Sex_F) \\
+  &= \beta_0\times \text{min}\left(\frac{Scr}{\kappa}, 1\right)^{\alpha} \times \text{max}\left(\frac{Scr}{\kappa}, 1\right)^{\gamma} \times \beta_1^{Age} \times (1+ \beta_3Sex_F) \\
+\log(GFR)  &= \log(\beta_0) + \alpha\text{min}\left(\log(Scr) - \log(\kappa), 0\right) + \gamma \text{max}\left(\log(Scr) - \log(\kappa), 0\right) \\ 
+& \quad + \log(\beta_1)Age + \log(1+ \beta_3)Sex_F \\
+&= \log(\beta_0) + \alpha\log(Scr) - \alpha\log(\kappa) + (\gamma-\alpha)\left(\log(SCr)-\log(\kappa)\right)[\text{if } \log(Scr) > \log(\kappa)] \\
+& \quad + \log(\beta_1)Age + \log(1+ \beta_3)Sex_F \\
+&= \log(\beta_0) + \alpha_M\log(\kappa_M) + \alpha\log(Scr) + (\gamma-\alpha)\left(\log(SCr)-\log(\kappa)\right)[\text{if } \log(Scr) > \log(\kappa)] \\
+& \quad + \log(\beta_1)Age + \left(\log(1+ \beta_3) - \alpha_M\log(\kappa_M) + \alpha_F\log(\kappa_F)\right)Sex_F 
+\end{align*}
+Where $\alpha_M$ and $\kappa_M$ are the values of $\alpha$ and $\kappa$ when Sex is male. In the above form the coefficents of the CKD-EPI can be directly comapred with the coefficients of the refitted CKD-EPI using the segmented package. Namely,
+\begin{align*}
+a &= \log(\beta_0) + \alpha_M\log(\kappa_M) \\
+b_1 &= \alpha \\
+b_2 &= \gamma - \alpha \\
+c &= \log(\kappa) \\
+b_2 &= \log(\beta_2) \\
+b_3 &= \log(1+ \beta_3) - \alpha_M\log(\kappa_M) + \alpha_F\log(\kappa_F)
+\end{align*}
+
+```{r refitting_CKD-EPI, eval = T, include = F}
+
+coef = Refit_CKD$coefficients
+psi = Refit_CKD$psi[ ,"Est."]
+
+
+
+beta_0 = exp(coef[["(Intercept)"]] +
+               coef[["log_Creat_nonIDMS_SexM"]]*psi["psi1.log_Creat_IDMS_SexM"] )
+alpha_M = coef[["log_Creat_nonIDMS_SexM"]] 
+alpha_F = coef[["log_Creat_nonIDMS_SexF"]] 
+gamma_M = coef[["log_Creat_nonIDMS_SexM"]] + coef[["U1.log_Creat_nonIDMS_SexM"]]
+gamma_F = coef[["log_Creat_nonIDMS_SexF"]] + coef[["U1.log_Creat_nonIDMS_SexF"]]
+kappa_M = exp(psi["psi1.log_Creat_nonIDMS_SexM"])
+kappa_F = exp(psi["psi1.log_Creat_nonIDMS_SexF"])
+
+alpha_M_IDMS = coef[["log_Creat_IDMS_SexM"]] 
+alpha_F_IDMS = coef[["log_Creat_IDMS_SexF"]] 
+gamma_M_IDMS = coef[["log_Creat_IDMS_SexM"]] + coef[["U1.log_Creat_IDMS_SexM"]]
+gamma_F_IDMS = coef[["log_Creat_IDMS_SexF"]] + coef[["U1.log_Creat_IDMS_SexF"]]
+kappa_M_IDMS = exp(psi["psi1.log_Creat_IDMS_SexM"])
+kappa_F_IDMS = exp(psi["psi1.log_Creat_IDMS_SexF"])
+
+
+beta_1 =  exp(coef[["Age"]])
+beta_3 = exp(coef[["SexFTRUE"]] - 
+               coef[["log_Creat_nonIDMS_SexM"]]*psi["psi1.log_Creat_IDMS_SexM"] + 
+               coef[["log_Creat_nonIDMS_SexF"]]*psi["psi1.log_Creat_IDMS_SexF"]) -1
+
+
+
+
+
+```
+ 
+The refitted CKD-EPI has the floowing coefficents:
+
+\begin{equation*}
+GFR = 
+117\times\text{min}\left(\frac{Scr}{\kappa}, 1\right)^{\alpha} \times \text{max}\left(\frac{Scr}{\kappa}, 1\right)^{\gamma} \times Age^{0.993} \times (1- 0.016Sex_F) 
+\end{equation*}
+where for non-IDMS data
+\begin{itemize}
+\item $\kappa$ = 1.000 if male and 0.798 if female
+\item $\alpha$ = -0.457 if male and -0.410 if female
+\item $\gamma$ = -1.138 if male and -1.149 if female
+\end{itemize} 
+while for IDMS cratinien data
+\begin{itemize}
+\item $\kappa$ = 0.870 if male and 0.792 if female
+\item $\alpha$ = -0.293 if male and -0.430 if female
+\item $\gamma$ = -0.984 if male and -1.118 if female
+\end{itemize} 
+
+```{r, eval = T, include = F}
+
+CKD_coef = data.frame(Coef = 
+                        c("beta_0", "alpha_M", "alpha_F", "gamma_M", "gamma_F", 
+                          "kappa_M", "kappa_F", "alpha_M_IDMS", "alpha_F_IDMS", 
+                          "gamma_M_IDMS", "gamma_F_IDMS", "kappa_M_IDMS", 
+                          "kappa_F_IDMS", "beta_1", "beta_3"),
+                      Refit_CKD_EPI = 
+                        c(beta_0, alpha_M, alpha_F, gamma_M, gamma_F, 
+                          kappa_M, kappa_F, alpha_M_IDMS, alpha_F_IDMS, 
+                          gamma_M_IDMS, gamma_F_IDMS, kappa_M_IDMS, 
+                          kappa_F_IDMS, beta_1, beta_3) %>%
+                        signif(digits = 3), 
+                      Original_CKD_EPI = 
+                        c(141, -0.411, -0.329, -1.209, -1.209, 
+                          0.9, 0.7, -0.411, -0.329, 
+                          -1.209, -1.209, 0.9, 
+                          0.7, 0.993, 0.018))
+                                    
+CKD_coef                       
+                        
+```
+
+
+
+
+```{r PLOT_spline_CKD, eval = T, echo = F, fig.height=3.5, fig.width=6, fig.cap="\\label{fig:spline_shape}Shape of Creatine relationship in the CKD-EPI model and our refitted version"}
+
+CKD_creat_IDMS_M_func <- function(x, Sex){
+  coef = Refit_CKD$coefficients
+  psi = Refit_CKD$psi[ ,"Est."]
+  coef[["Creatinine_typeIDMS"]] + 
+    coef[["log_Creat_IDMS_SexM"]]*x + 
+              coef[["U1.log_Creat_IDMS_SexM"]]*(x > psi["psi1.log_Creat_IDMS_SexM"])*
+              (x - psi["psi1.log_Creat_IDMS_SexM"])
+}
+CKD_creat_IDMS_F_func <- function(x, Sex){
+  coef = Refit_CKD$coefficients
+  psi = Refit_CKD$psi[ ,"Est."]
+  coef[["Creatinine_typeIDMS"]] + 
+    coef[["SexFTRUE"]] + coef[["log_Creat_IDMS_SexF"]]*x + 
+              coef[["U1.log_Creat_IDMS_SexF"]]*(x > psi["psi1.log_Creat_IDMS_SexF"])*
+              (x - psi["psi1.log_Creat_IDMS_SexF"])
+}
+CKD_creat_nonIDMS_M_func <- function(x, Sex){
+  coef = Refit_CKD$coefficients
+  psi = Refit_CKD$psi[ ,"Est."]
+    coef[["log_Creat_nonIDMS_SexM"]]*x + 
+              coef[["U1.log_Creat_nonIDMS_SexM"]]*(x > psi["psi1.log_Creat_nonIDMS_SexM"])*
+              (x - psi["psi1.log_Creat_nonIDMS_SexM"])
+}
+CKD_creat_nonIDMS_F_func <- function(x, Sex){
+  coef = Refit_CKD$coefficients
+  psi = Refit_CKD$psi[ ,"Est."]
+    coef[["SexFTRUE"]] + coef[["log_Creat_nonIDMS_SexF"]]*x + 
+              coef[["U1.log_Creat_nonIDMS_SexF"]]*(x > psi["psi1.log_Creat_nonIDMS_SexF"])*
+              (x - psi["psi1.log_Creat_nonIDMS_SexF"])
+}
+
+
+
+Actual_CKD_creat_M_func <- function(x, Sex){
+ -0.411*x + (-1.1209 + 0.411)*(x-log(0.9))*(x > log(0.9))
+} 
+Actual_CKD_creat_F_func <- function(x, Sex){
+ -0.329*x + (-1.1209 +0.329)*(x-log(0.7))*(x > log(0.7)) + 
+            log(1.018) +0.411*log(0.9) - 0.329*log(0.7)
+  } 
+
+
+p1 <- Expansion_data_fit %>% 
+  filter(Creatinine_type == "Non_IDMS") %>% 
+  ggplot(aes(x = log(Creat))) + 
+  geom_line(data = filter(Expansion_data_fit, Sex == "M"),
+            aes(y = CKD_creat_nonIDMS_M_func(log(Creat), "M"), colour = "M", linetype = "Refitted")) +
+  geom_line(data = filter(Expansion_data_fit, Sex == "F"),
+            aes(y = CKD_creat_nonIDMS_F_func(log(Creat), "F"), colour = "F", linetype = "Refitted")) +
+  geom_line(data = filter(Expansion_data_fit, Sex == "M"),
+            aes(y = Actual_CKD_creat_M_func(log(Creat), "M"), colour = "M", linetype = "Original")) +
+  geom_line(data = filter(Expansion_data_fit, Sex == "F"),
+            aes(y = Actual_CKD_creat_F_func(log(Creat), "F"), colour = "F", linetype = "Original")) +
+  geom_rug(aes(colour = Sex), alpha =.2) + 
+  ggplot_theme() + ylab("Effect of log(SCr)") +  xlab("non-IDMS log(SCr)") +
+  scale_colour_manual(values = tol2qualitative, name = "Sex") + 
+  ylim(-2, 1)
+
+
+
+
+p2 <- Expansion_data_fit %>% 
+  filter(Creatinine_type == "IDMS") %>% 
+  ggplot(aes(x = log(Creat))) + 
+  geom_line(data = filter(Expansion_data_fit, Sex == "M"),
+            aes(y = CKD_creat_IDMS_M_func(log(Creat), "M"), colour = "M", linetype = "Refitted")) +
+  geom_line(data = filter(Expansion_data_fit, Sex == "F"),
+            aes(y = CKD_creat_IDMS_F_func(log(Creat), "F"), colour = "F", linetype = "Refitted")) +
+  geom_line(data = filter(Expansion_data_fit, Sex == "M"),
+            aes(y = Actual_CKD_creat_M_func(log(Creat), "M"), colour = "M", linetype = "Original")) +
+  geom_line(data = filter(Expansion_data_fit, Sex == "F"),
+            aes(y = Actual_CKD_creat_F_func(log(Creat), "F"), colour = "F", linetype = "Original")) +
+  geom_rug(aes(colour = Sex), alpha =.2) + 
+  ggplot_theme() + ylab("Effect of log(SCr)") +  xlab("IDMS log(SCr)") +
+  scale_colour_manual(values = tol2qualitative, name = "Sex") + 
+  ylim(-2, 1)
+
+
+p <- plot_grid(p1,p2, labels = c("A", "B"), axis = "btlr",
+               align = "hv", label_size = 15)
+
+ggsave(file.path(fig_export_dir, "Refit_model_shape_plot.pdf"), 
+       plot = p, 
+       width = 12, height = 9)
+
+```
+
+
 ## Model validation
 We next compared the currently published models which are suitable for IDMS data
 with our six candidate models. Of the published models, only the CKD-EPI and
@@ -2441,6 +2700,7 @@ Validation_fitted_df_all <-  Expansion_data %>%
   # mutate(BIC_model = predict(BIC_model, newdata = .)^2) %>%
   # mutate(Spline_model_age = predict(Spline_model_age, newdata = .)^2) %>%
   # mutate(Spline_model_creat = predict(Spline_model_creat, newdata = .)^2) %>%
+  mutate(Refit_CKD = exp(predict(Refit_CKD, newdata = .))) %>%
   mutate(Spline_model_age_creat = predict(Spline_model_age_creat, newdata = .)^2) %>%
   mutate(MDRD = ifelse(Creatinine_type == "IDMS", MDRD_adj_IDMS, MDRD_adj)) %>% 
   rename(`CKD-EPI` = CKD_adj, LM = LM_adj, FAS = FAS_adj) %>%
@@ -2451,7 +2711,7 @@ Validation_fitted_df_all <-  Expansion_data %>%
 
 Validation_fitted_df <- Validation_fitted_df_all %>%
   filter(equation %in% c("Refit_CamGFR", "CKD-EPI", "MDRD", "LM", "FAS",
-                         "CamGFR_v1")) %>%
+                         "CamGFR_v1", "Refit_CKD")) %>%
   mutate(equation = factor(equation,
                            levels = c("Refit_CamGFR", "CamGFR_v1",
                                       "LM","CKD-EPI", "FAS", "MDRD"),
@@ -3415,7 +3675,7 @@ p
 
 ## CamGFR v2 on JNCI data
 
-```{r compare_models_using_JNCI_paper_data, eval = F, echo = F}
+```{r compare_models_using_JNCI_paper_data, eval = T, echo = F}
 
 JNCI_fitted_values <- New_nonIDMS_data_JNCI %>%
   filter(!(Centre %in% c("Cambridge", "Manchester"))) %>%
@@ -3465,6 +3725,93 @@ JNCI_fitted_values %>%
 
 
 ```
+
+## Leave-out-one-centre cross-valiation
+
+### Create two centre model
+
+```{r fit_two_centre_models, eval = F, echo = F}
+
+model_formula_interaction <-
+  sqrt_GFR ~ Age + BSA + Sex + Creatinine_type:log_Creat +
+  Creatinine_type:I(log_Creat^2) + Creatinine_type:I(log_Creat^3) +
+  Age:BSA + Age:Sex + Creatinine_type 
+
+Refit_CamGFR_Goth <- Expansion_data %>%
+  filter(Centre != "Gothenburg") %>% 
+  lm(model_formula_interaction, data = .)
+Refit_CamGFR_Man<- Expansion_data %>%
+  filter(Centre != "Manchester") %>% 
+  lm(model_formula_interaction, data = .)
+Refit_CamGFR_Cam <- Expansion_data %>%
+  filter(Centre != "Cambridge") %>% 
+  lm(model_formula_interaction, data = .)
+
+mutate(tidy(Refit_CamGFR_Goth), Missing_centre = "Gothenburg") %>%
+  bind_rows(mutate(tidy(Refit_CamGFR_Man), Missing_centre = "Manchester")) %>%
+  bind_rows(mutate(tidy(Refit_CamGFR_Cam), Missing_centre = "Cambridge")) %>%
+  select(term, estimate, std.error, Missing_centre) %>% 
+  pivot_longer(estimate:std.error) %>%
+  pivot_wider(names_from = Missing_centre, values_from = value) %>%
+  arrange(name)
+
+install.packages("tidyverse")
+```
+
+### Validate on remaining centre
+
+```{r fit_two_centre_models, eval = F, echo = F}
+Validation_fitted_df_Goth <-  Expansion_data %>%
+  filter(Centre == "Gothenburg") %>%
+  bind_cols(GFR_fitted_values_eth(.)) %>%
+  mutate(Refit_CamGFR_Goth = predict(Refit_CamGFR_Goth, newdata = .)^2) %>%
+  mutate(MDRD = ifelse(Creatinine_type == "IDMS", MDRD_adj_IDMS, MDRD_adj)) %>% 
+  rename(`CKD-EPI` = CKD_adj, LM = LM_adj, FAS = FAS_adj) %>%
+  gather(key = equation, value = fitted,
+         Refit_CamGFR_Goth, `CKD-EPI`, MDRD, LM, FAS) %>%
+  mutate(resid = GFR - fitted)
+
+Results_CreatType_Goth <- Validation_fitted_df_Goth %>%
+  group_by(equation, Creatinine_type) %>%
+  Statistic_summary_withP20_both() %>%
+  arrange(Creatinine_type, RMSE)
+
+
+Validation_fitted_df_Man <-  Expansion_data %>%
+  filter(Centre == "Manchester") %>%
+  bind_cols(GFR_fitted_values_eth(.)) %>%
+  mutate(Refit_CamGFR_Goth = predict(Refit_CamGFR_Man, newdata = .)^2) %>%
+  mutate(MDRD = ifelse(Creatinine_type == "IDMS", MDRD_adj_IDMS, MDRD_adj)) %>% 
+  rename(`CKD-EPI` = CKD_adj, LM = LM_adj, FAS = FAS_adj) %>%
+  gather(key = equation, value = fitted,
+         Refit_CamGFR_Goth, `CKD-EPI`, MDRD, LM, FAS) %>%
+  mutate(resid = GFR - fitted)
+
+Results_CreatType_Man <- Validation_fitted_df_Man %>%
+  group_by(equation, Creatinine_type) %>%
+  Statistic_summary_withP20_both() %>%
+  arrange(Creatinine_type, RMSE)
+
+Validation_fitted_df_Cam <-  Expansion_data %>%
+  filter(Centre == "Cambridge") %>%
+  bind_cols(GFR_fitted_values_eth(.)) %>%
+  mutate(Refit_CamGFR_Goth = predict(Refit_CamGFR_Cam, newdata = .)^2) %>%
+  mutate(MDRD = ifelse(Creatinine_type == "IDMS", MDRD_adj_IDMS, MDRD_adj)) %>% 
+  rename(`CKD-EPI` = CKD_adj, LM = LM_adj, FAS = FAS_adj) %>%
+  gather(key = equation, value = fitted,
+         Refit_CamGFR_Goth, `CKD-EPI`, MDRD, LM, FAS) %>%
+  mutate(resid = GFR - fitted)
+
+Results_CreatType_Cam <- Validation_fitted_df_Cam %>%
+  group_by(equation, Creatinine_type) %>%
+  Statistic_summary_withP20_both() %>%
+  arrange(Creatinine_type, RMSE)
+
+Results_CreatType_Cam
+
+```
+
+
 
 
 ```{r save_enviroment, include=F, eval = F}
