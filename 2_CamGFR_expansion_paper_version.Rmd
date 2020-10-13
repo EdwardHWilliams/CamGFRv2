@@ -2461,7 +2461,7 @@ summary(Refit_CKD)$psi %>%
 
 
 So we will reduce CKD-EPI to a similar form to be able to comare coefficents. 
-CKD has the following published form, ignoring the Ethnicity term, in which $\alpoha$ 
+CKD has the following published form, ignoring the Ethnicity term, in which $\alpha$ 
 and $\kappa$ depend on Sex. 
 
 \begin{align*}
