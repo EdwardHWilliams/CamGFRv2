@@ -2605,16 +2605,20 @@ Refit_CKD <- lm(log_GFR ~ Creatinine_type + BSA + Age +
                        "log_Creat_nonIDMS_SexM" = -0.1, 
                        "log_Creat_nonIDMS_SexF" = -0.1),
             control = seg.control(tol = 1e-06, it.max = 100, h = 0.1))
-Refit_CKD %>% tidy() %>%
+summary(Refit_CKD)$coef %>%
+  as.data.frame() %>%
+  rownames_to_column(var = "term") %>%
   filter(!str_detect(term, "psi"))
-Refit_CKD$psi %>% tidy()
+summary(Refit_CKD)$psi %>%
+  as.data.frame() %>%
+  rownames_to_column(var = "term") 
 
 
 ```
 
 
 So we will reduce CKD-EPI to a similar form to be able to comare coefficents. 
-CKD has the following published form, ignoring the Ethnicity term, in which $\alpoha$ 
+CKD has the following published form, ignoring the Ethnicity term, in which $\alpha$ 
 and $\kappa$ depend on Sex. 
 
 \begin{align*}
@@ -3867,7 +3871,8 @@ JNCI_fitted_values %>%
   # select(-P20_dose, -P20_dose_lwr, -P20_dose_upr) %>%
   arrange(RMSE) %>%
   Clean_results() %>%
-  select(-P20) %>% rename("Dose P20" = P20_dose) %>% 
+  select(-P20) %>%
+  rename("Dose P20" = P20_dose) %>% 
   write_csv(path = file.path(fig_export_dir, "Results_JNCI_data_all.csv"))
 
 JNCI_fitted_values %>%
@@ -3876,7 +3881,7 @@ JNCI_fitted_values %>%
   # select(-P20_dose, -P20_dose_lwr, -P20_dose_upr) %>%
   arrange(Centre, RMSE) %>%
   Clean_results() %>%
-  select(-P20) %>% rename("Dose P20" = P20_dose) %>%
+  select(-P20) %>%
   rename("Dose P20" = P20_dose) %>% 
   write_csv(path = file.path(fig_export_dir, "Results_JNCI_data_by_centre.csv"))
 
