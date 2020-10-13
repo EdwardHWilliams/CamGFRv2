@@ -731,7 +731,7 @@ p1 <- df_mixed %>%
                position = position_dodge(width = 0.9), 
                size = 2.5, colour = "white") +
   # ylim(-1.5, 2.5) + 
-  coord_trans(y = "log10", limy = c(exp(-1.8), exp(2.15))) +
+  coord_trans(y = "log10", ylim = c(exp(-1.8), exp(2.15))) +
   scale_y_continuous(breaks= c(0.3, 0.6, 1.2, 2.4, 4.8)) 
 # scale_y_continuous(breaks= c(0.3, 0.6, 1.2, 2.4, 4.8), trans = "log10")
 p1
