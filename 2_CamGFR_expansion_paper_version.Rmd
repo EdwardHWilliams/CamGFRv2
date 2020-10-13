@@ -1489,45 +1489,81 @@ CI_lwr <- min(boxcox_res$x[which(boxcox_res$y - CI_y > 0)])
 CI_upr<- max(boxcox_res$x[which(boxcox_res$y - CI_y > 0)])
 ```
 
+
+
 ```{r GFR_transformation, echo = F, fig.width=9, fig.height=6, message=F, fig.cap="Density plot of GFR, sqrt(GFR) and log(GFR) alowng with a fitted normal distribution in red."}
 
-p1 <- Expansion_data_fit %>%
-  ggplot() +
-  geom_density(aes(x = GFR), fill = "grey80") + 
-  ggplot_theme() + 
-  stat_function(data = Expansion_data_fit, fun=dnorm, color="red", 
-                args=list(mean=mean(Expansion_data_fit$GFR),
-                          sd =sd(Expansion_data_fit$GFR))) +
-  theme(text = element_text(size = 14))
+plot_data <- Expansion_data_fit %>%
+  select(GFR) %>%
+  mutate(`sqrt(GFR)` = sqrt(GFR), 
+         `log(GFR)` = log(GFR)) %>%
+  pivot_longer(cols = everything()) 
+distribution = plot_data %>%
+  group_by(name) %>%
+  summarise(mean = mean(value), sd = sd(value), 
+            min = min(value), max = max(value)) %>% 
+  rowwise() %>%
+  mutate(grid = list(seq(min, max, length = 100))) %>%
+  mutate(density = list(dnorm(grid, mean, sd))) %>% 
+  unnest() 
 
-plot_data <- Expansion_data_fit %>% 
-  mutate(GFR = sqrt(GFR)) 
-p2 <- plot_data %>%
+plot_data %>%
   ggplot() +
-  geom_density(aes(x = GFR), fill = "grey80") + 
+  geom_density(aes(x = value), fill = "grey80") + 
   ggplot_theme() + 
-  stat_function(data = plot_data, fun=dnorm, color="red", 
-                args=list(mean=mean(plot_data$GFR),
-                          sd =sd(plot_data$GFR))) +
-  xlab("sqrt(GFR)") +
-  theme(text = element_text(size = 14))
+  geom_line(aes(y = density, x = grid), data = distribution, colour = "red") +
+  facet_wrap(~name, ncol = 1, scales = "free", strip.position = "bottom") +
+  theme(text = element_text(size = 12),
+        strip.background = element_blank(), 
+        axis.title.x = element_blank(),
+        strip.text = element_text(size = rel(1)), 
+        strip.placement = "outside", 
+        plot.margin = margin(6, 8, 2, 2, "mm"))  
 
-plot_data <- Expansion_data_fit %>% 
-  mutate(GFR = log(GFR)) 
-p3 <- plot_data %>%
+
+p1 = plot_data %>%
   ggplot() +
-  geom_density(aes(x = GFR), fill = "grey80") + 
+  geom_density(aes(x = value), fill = "grey80") + 
   ggplot_theme() + 
-  stat_function(data = plot_data, fun=dnorm, color="red", 
-                args=list(mean=mean(plot_data$GFR), sd =sd(plot_data$GFR))) +
-  xlab("log(GFR)") +
-  theme(text = element_text(size = 14))
+  geom_line(aes(y = density, x = grid), data = distribution, colour = "red") +
+  facet_wrap(~name, ncol = 1, scales = "free", strip.position = "bottom") +
+  theme(text = element_text(size = 12),
+        strip.background = element_blank(), 
+        axis.title.x = element_blank(),
+        strip.text = element_text(size = rel(1)), 
+        strip.placement = "outside", 
+        plot.margin = margin(6, 8, 2, 2, "mm"))  
 
-p <- grid.arrange_aligned(list(p1,p2,p3))
+p2 = plot_data %>%
+  arrange(name, value) %>%
+  nest(value) %>%
+  rowwise() %>%
+  mutate(mean = mean(data$value), 
+         sd = sd(data$value), 
+         len = length(data$value)) %>%
+  mutate(quantiles = list(qnorm(p = (1:len)/(len+1), mean = mean, sd = sd))) %>%
+  unnest() %>%
+  ggplot(aes(x = value, y = quantiles)) +
+  geom_point(alpha = 0.2) + 
+  geom_abline(intercept = 0, slope = 1) + 
+  facet_wrap(~name, ncol = 1, scales = "free", strip.position = "bottom") +
+  ggplot_theme() + 
+  ylab("Theretical quantiles") +
+  theme(text = element_text(size = 12),
+        strip.background = element_blank(), 
+        axis.title.x = element_blank(),
+        strip.text = element_text(size = rel(1)), 
+        strip.placement = "outside", 
+        plot.margin = margin(6, 8, 2, 2, "mm")) 
+  
+grid.arrange(p1, p2, ncol= 2)
 
 
 ggsave(file.path(fig_export_dir, "Transforming_GFR_normallity.pdf"), plot = p, 
        width = 12, height = 9)
+
+  
+
 ```
 
 Firstly, we assessed which transformation should be applied to to our predictive
