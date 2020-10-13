@@ -2448,9 +2448,13 @@ Refit_CKD <- lm(log_GFR ~ Creatinine_type + BSA + Age +
                        "log_Creat_nonIDMS_SexM" = -0.1, 
                        "log_Creat_nonIDMS_SexF" = -0.1),
             control = seg.control(tol = 1e-06, it.max = 100, h = 0.1))
-Refit_CKD %>% tidy() %>%
+summary(Refit_CKD)$coef %>%
+  as.data.frame() %>%
+  rownames_to_column(var = "term") %>%
   filter(!str_detect(term, "psi"))
-Refit_CKD$psi %>% tidy()
+summary(Refit_CKD)$psi %>%
+  as.data.frame() %>%
+  rownames_to_column(var = "term") 
 
 
 ```
