@@ -1548,7 +1548,7 @@ p2 = plot_data %>%
   geom_abline(intercept = 0, slope = 1) + 
   facet_wrap(~name, ncol = 1, scales = "free", strip.position = "bottom") +
   ggplot_theme() + 
-  ylab("Theretical quantiles") +
+  ylab("Theretical normal quantiles") +
   theme(text = element_text(size = 12),
         strip.background = element_blank(), 
         axis.title.x = element_blank(),
@@ -1556,7 +1556,7 @@ p2 = plot_data %>%
         strip.placement = "outside", 
         plot.margin = margin(6, 8, 2, 2, "mm")) 
   
-grid.arrange(p1, p2, ncol= 2)
+Í = grid.arrange(p1, p2, ncol= 2)
 
 
 ggsave(file.path(fig_export_dir, "Transforming_GFR_normallity.pdf"), plot = p, 
@@ -2662,6 +2662,9 @@ p1 <- Expansion_data_fit %>%
   ylim(-2, 1)
 
 
+Expansion_data %>% 
+  select(Diagnosis, Patient_type) %>%
+  table()
 
 
 p2 <- Expansion_data_fit %>% 
@@ -2740,7 +2743,7 @@ Validation_fitted_df_all <-  Expansion_data %>%
   # mutate(BIC_model = predict(BIC_model, newdata = .)^2) %>%
   # mutate(Spline_model_age = predict(Spline_model_age, newdata = .)^2) %>%
   # mutate(Spline_model_creat = predict(Spline_model_creat, newdata = .)^2) %>%
-  mutate(Refit_CKD = exp(predict(Refit_CKD, newdata = .))) %>%
+  mutate(CKD_refit = exp(predict(Refit_CKD, newdata = .))) %>%
   mutate(Spline_model_age_creat = predict(Spline_model_age_creat, newdata = .)^2) %>%
   mutate(MDRD = ifelse(Creatinine_type == "IDMS", MDRD_adj_IDMS, MDRD_adj)) %>% 
   rename(`CKD-EPI` = CKD_adj, LM = LM_adj, FAS = FAS_adj) %>%
@@ -3096,7 +3099,7 @@ p_values_CreatType =
 
 ```{r bootstrap_p_values, echo = F, eval = F, cache=T}
 
-p_values_CreatType <- Validation_fitted_df %>%
+p_values_CreatType <- Validation_fitted_df_all %>%
   split(., .$Creatinine_type) %>%
   lapply(. , Bootstrap_all_stats_all_equation)
 names = names(p_values_CreatType)
@@ -3310,9 +3313,6 @@ Clean_Results_CreatType %>%
                          latex_gap_space = "0.6em", hline_after = T) %>%
   kableExtra::group_rows("Non-IDMS creatinine (n = 906)", 6, 10,
                          latex_gap_space = "0.6em", hline_after = T) 
-
-
-
 
 # Clean_Results_CreatType %>% 
 #   filter(Creatinine_type == "IDMS") %>% 
