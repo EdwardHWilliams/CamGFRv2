@@ -2833,6 +2833,230 @@ Results_Diagnosis_CreatType_all <- Validation_fitted_df_all %>%
 ```
 
 
+```{r Supplemental_TablesToFigures}
+Results_list <- list(Results = Results, 
+                     Results_CreatType = Results_CreatType, 
+                     Results_CreatType = Results_CreatType, 
+                     Results_Centre_CreatType = Results_Centre_CreatType, 
+                     Results_Centre = Results_Centre, 
+                     Results_Diagnosis = Results_Diagnosis, 
+                     Results_PatientType_Creattype = Results_PatientType_Creattype, 
+                     Results_Age_Creattype = Results_Age_Creattype, 
+                     Results_BSA_Creattype = Results_BSA_Creattype, 
+                     Results_Sex_Creattype = Results_Sex_Creattype, 
+                     Results_eGFR_Creattype = Results_eGFR_Creattype, 
+                     Results_BSAadj_eGFR_Creattype = Results_BSAadj_eGFR_Creattype, 
+                     Results_BSAadj_eGFR_Creattype_on_BSAadj_eGFR_scale = Results_BSAadj_eGFR_Creattype_on_BSAadj_eGFR_scale)
+
+save(Results_list, file = "Results_list.RData")
+load("Results_list.RData")
+library(PerformanceAnalytics)
+
+### Table S8: Results_CreatType
+df <- Results_list[[2]] %>% select(-"median_fitted")
+melt.df <- melt(df[,c("equation", "Creatinine_type", "RMSE", "median", "IQR", "P20", "P20_dose")])
+melt.df_lwr <- melt(df[,c("equation", "Creatinine_type", "RMSE_lwr", "median_lwr", "IQR_lwr", "P20_lwr", "P20_dose_lwr")]) %>% select(-c("equation", "Creatinine_type","variable"))
+names(melt.df_lwr) <- "lwr"
+melt.df_upr <- melt(df[,c("equation", "Creatinine_type", "RMSE_upr", "median_upr", "IQR_upr", "P20_upr", "P20_dose_upr")]) %>% select(-c("equation", "Creatinine_type","variable"))
+names(melt.df_upr) <- "upr"
+
+df2 <- cbind(melt.df, melt.df_lwr, melt.df_upr)[,c("equation","Creatinine_type", "variable", "value", "lwr", "upr")]
+names(df2)[grep("variable", names(df2))] <- "Parameter"
+
+p.Results_CreatType <- ggplot(df2) + 
+    geom_vline(xintercept = 0, linetype = "dashed") +
+    ggstance::geom_linerangeh(aes(y = equation, xmin = lwr, xmax = upr, colour = Parameter), 
+                              position = ggstance::position_dodgev(height = 0.5)) + 
+    geom_point(aes(y = equation, x = value, colour = Parameter), 
+               fill = "white", 
+               size = 1, stroke = 1, shape = 21,  
+               position = ggstance::position_dodgev(height = 0.5)) + 
+    scale_color_manual(values = tol5qualitative) + 
+    facet_wrap(~Creatinine_type, scales = "free", nrow = 1) + 
+    ggplot_theme() + 
+    theme(strip.background = element_blank(), 
+          axis.text = element_text(size = rel(1)),
+          axis.title.y = element_blank()) + 
+    xlab("Estiamted parameter value") +
+    ggtitle("S8: By Creattype")
+
+ggsave(file.path(fig_export_dir, "p.S8_Results_CreatType.png"), width = 10, height = 5)
+
+
+
+
+### Table S9: Results_Age_Creattype
+
+df <- Results_list[[7]] %>% select(-"median_fitted")
+melt.df <- melt(df[,c("equation", "Age_cut", "Creatinine_type", "RMSE", "median", "IQR", "P20", "P20_dose")])
+melt.df_lwr <- melt(df[,c("equation", "Age_cut", "Creatinine_type", "RMSE_lwr", "median_lwr", "IQR_lwr", "P20_lwr", "P20_dose_lwr")]) %>% select(-c("equation", "Age_cut", "Creatinine_type","variable"))
+names(melt.df_lwr) <- "lwr"
+melt.df_upr <- melt(df[,c("equation", "Age_cut", "Creatinine_type", "RMSE_upr", "median_upr", "IQR_upr", "P20_upr", "P20_dose_upr")]) %>% select(-c("equation", "Age_cut", "Creatinine_type","variable"))
+names(melt.df_upr) <- "upr"
+
+df2 <- cbind(melt.df, melt.df_lwr, melt.df_upr)[,c("equation", "Age_cut", "Creatinine_type", "variable", "value", "lwr", "upr")]
+names(df2)[grep("variable", names(df2))] <- "Parameter"
+df2$Creatinine_type <- factor(df2$Creatinine_type)
+
+p.Results_Age_Creattype <- ggplot(df2) + 
+    geom_vline(xintercept = 0, linetype = "dashed") +
+    ggstance::geom_linerangeh(aes(y = equation, xmin = lwr, xmax = upr, colour = Parameter), 
+                              position = ggstance::position_dodgev(height = 0.5)) + 
+    geom_point(aes(y = equation, x = value, colour = Parameter), 
+               fill = "white", 
+               size = 1, stroke = 1, shape = 21,  
+               position = ggstance::position_dodgev(height = 0.5)) + 
+    scale_color_manual(values = tol5qualitative) + 
+    facet_wrap( ~ Creatinine_type + Age_cut, scales = "free", ncol = 5, nrow = 2) + 
+    ggplot_theme() + 
+    theme(strip.background = element_blank(), 
+          axis.text = element_text(size = rel(1)),
+          axis.title.y = element_blank()) + 
+    xlab("Estiamted parameter value") +
+    ggtitle("S9: By Age and Creattype")
+
+ggsave(file.path(fig_export_dir, "p.S9_Age_Creattype.png"), width = 25, height = 10)
+
+
+
+
+### Table S10: Results_BSA_Creattype
+
+df <- Results_list[[8]] %>% select(-"median_fitted")
+melt.df <- melt(df[,c("equation", "BSA_cut", "Creatinine_type", "RMSE", "median", "IQR", "P20", "P20_dose")])
+melt.df_lwr <- melt(df[,c("equation", "BSA_cut", "Creatinine_type", "RMSE_lwr", "median_lwr", "IQR_lwr", "P20_lwr", "P20_dose_lwr")]) %>% select(-c("equation", "BSA_cut", "Creatinine_type","variable"))
+names(melt.df_lwr) <- "lwr"
+melt.df_upr <- melt(df[,c("equation", "BSA_cut", "Creatinine_type", "RMSE_upr", "median_upr", "IQR_upr", "P20_upr", "P20_dose_upr")]) %>% select(-c("equation", "BSA_cut", "Creatinine_type","variable"))
+names(melt.df_upr) <- "upr"
+
+df2 <- cbind(melt.df, melt.df_lwr, melt.df_upr)[,c("equation", "BSA_cut", "Creatinine_type", "variable", "value", "lwr", "upr")]
+names(df2)[grep("variable", names(df2))] <- "Parameter"
+df2$Creatinine_type <- factor(df2$Creatinine_type)
+
+p.Results_BSA_Creattype <- ggplot(df2) + 
+    geom_vline(xintercept = 0, linetype = "dashed") +
+    ggstance::geom_linerangeh(aes(y = equation, xmin = lwr, xmax = upr, colour = Parameter), 
+                              position = ggstance::position_dodgev(height = 0.5)) + 
+    geom_point(aes(y = equation, x = value, colour = Parameter), 
+               fill = "white", 
+               size = 1, stroke = 1, shape = 21,  
+               position = ggstance::position_dodgev(height = 0.5)) + 
+    scale_color_manual(values = tol5qualitative) + 
+    facet_wrap( ~ Creatinine_type + BSA_cut, scales = "free", ncol = 5, nrow = 2) + 
+    ggplot_theme() + 
+    theme(strip.background = element_blank(), 
+          axis.text = element_text(size = rel(1)),
+          axis.title.y = element_blank()) + 
+    xlab("Estiamted parameter value") +
+    ggtitle("S10: By BSA and Creattype")
+
+ggsave(file.path(fig_export_dir, "p.S10_BSA_Creattype.png"), width = 25, height = 10)
+
+
+
+
+### Table S11: Results_Sex_Creattype
+
+df <- Results_list[[9]] %>% select(-"median_fitted")
+melt.df <- melt(df[,c("equation", "Sex", "Creatinine_type", "RMSE", "median", "IQR", "P20", "P20_dose")])
+melt.df_lwr <- melt(df[,c("equation", "Sex", "Creatinine_type", "RMSE_lwr", "median_lwr", "IQR_lwr", "P20_lwr", "P20_dose_lwr")]) %>% select(-c("equation", "Sex", "Creatinine_type","variable"))
+names(melt.df_lwr) <- "lwr"
+melt.df_upr <- melt(df[,c("equation", "Sex", "Creatinine_type", "RMSE_upr", "median_upr", "IQR_upr", "P20_upr", "P20_dose_upr")]) %>% select(-c("equation", "Sex", "Creatinine_type","variable"))
+names(melt.df_upr) <- "upr"
+
+df2 <- cbind(melt.df, melt.df_lwr, melt.df_upr)[,c("equation", "Sex", "Creatinine_type", "variable", "value", "lwr", "upr")]
+names(df2)[grep("variable", names(df2))] <- "Parameter"
+df2$Creatinine_type <- factor(df2$Creatinine_type)
+df2$Sex <- factor(df2$Sex, labels = c("Female", "Male"))
+
+p.Results_Sex_Creattype <- ggplot(df2) + 
+    geom_vline(xintercept = 0, linetype = "dashed") +
+    ggstance::geom_linerangeh(aes(y = equation, xmin = lwr, xmax = upr, colour = Parameter), 
+                              position = ggstance::position_dodgev(height = 0.5)) + 
+    geom_point(aes(y = equation, x = value, colour = Parameter), 
+               fill = "white", 
+               size = 1, stroke = 1, shape = 21,  
+               position = ggstance::position_dodgev(height = 0.5)) + 
+    scale_color_manual(values = tol5qualitative) + 
+    facet_wrap( ~ Creatinine_type + Sex, scales = "free", ncol = 2, nrow = 2) + 
+    ggplot_theme() + 
+    theme(strip.background = element_blank(), 
+          axis.text = element_text(size = rel(1)),
+          axis.title.y = element_blank()) + 
+    xlab("Estiamted parameter value") +
+    ggtitle("S11: By Sex and Creattype")
+
+ggsave(file.path(fig_export_dir, "p.S11_Sex_Creattype.png"), width = 10, height = 10)
+
+
+
+### Table S12: Results_PatientType_Creattype
+
+df <- Results_list[[6]] %>% select(-"median_fitted")
+melt.df <- melt(df[,c("equation", "Patient_type", "Creatinine_type", "RMSE", "median", "IQR", "P20", "P20_dose")])
+melt.df_lwr <- melt(df[,c("equation", "Patient_type", "Creatinine_type", "RMSE_lwr", "median_lwr", "IQR_lwr", "P20_lwr", "P20_dose_lwr")]) %>% select(-c("equation", "Patient_type", "Creatinine_type","variable"))
+names(melt.df_lwr) <- "lwr"
+melt.df_upr <- melt(df[,c("equation", "Patient_type", "Creatinine_type", "RMSE_upr", "median_upr", "IQR_upr", "P20_upr", "P20_dose_upr")]) %>% select(-c("equation", "Patient_type", "Creatinine_type","variable"))
+names(melt.df_upr) <- "upr"
+
+df2 <- cbind(melt.df, melt.df_lwr, melt.df_upr)[,c("equation", "Patient_type", "Creatinine_type", "variable", "value", "lwr", "upr")]
+names(df2)[grep("variable", names(df2))] <- "Parameter"
+df2$Patient_type <- factor(df2$Patient_type)
+
+p.Results_PatientType_Creattype <- ggplot(df2) + 
+    geom_vline(xintercept = 0, linetype = "dashed") +
+    ggstance::geom_linerangeh(aes(y = equation, xmin = lwr, xmax = upr, colour = Parameter), 
+                              position = ggstance::position_dodgev(height = 0.5)) + 
+    geom_point(aes(y = equation, x = value, colour = Parameter), 
+               fill = "white", 
+               size = 1, stroke = 1, shape = 21,  
+               position = ggstance::position_dodgev(height = 0.5)) + 
+    scale_color_manual(values = tol5qualitative) + 
+    facet_wrap( ~ Creatinine_type + Patient_type, scales = "free", ncol = 3, nrow = 2) + 
+    ggplot_theme() + 
+    theme(strip.background = element_blank(), 
+          axis.text = element_text(size = rel(1)),
+          axis.title.y = element_blank()) + 
+    xlab("Estiamted parameter value") +
+    ggtitle("S1: By Patienttype and Creattype")
+
+ggsave(file.path(fig_export_dir, "p.S12_Patienttype_Creattype.png"), width = 15, height = 10)
+
+
+### Table S13: Results_eGFR_Creattype
+
+df <- Results_list[[10]] %>% select(-"median_fitted")
+melt.df <- melt(df[,c("equation", "eGFR_cut", "Creatinine_type", "RMSE", "median", "IQR", "P20", "P20_dose")])
+melt.df_lwr <- melt(df[,c("equation", "eGFR_cut", "Creatinine_type", "RMSE_lwr", "median_lwr", "IQR_lwr", "P20_lwr", "P20_dose_lwr")]) %>% select(-c("equation", "eGFR_cut", "Creatinine_type","variable"))
+names(melt.df_lwr) <- "lwr"
+melt.df_upr <- melt(df[,c("equation", "eGFR_cut", "Creatinine_type", "RMSE_upr", "median_upr", "IQR_upr", "P20_upr", "P20_dose_upr")]) %>% select(-c("equation", "eGFR_cut", "Creatinine_type","variable"))
+names(melt.df_upr) <- "upr"
+
+df2 <- cbind(melt.df, melt.df_lwr, melt.df_upr)[,c("equation", "eGFR_cut", "Creatinine_type", "variable", "value", "lwr", "upr")]
+names(df2)[grep("variable", names(df2))] <- "Parameter"
+df2$Creatinine_type <- factor(df2$Creatinine_type)
+
+p.Results_eGFR_Creattype <- ggplot(df2) + 
+    geom_vline(xintercept = 0, linetype = "dashed") +
+    ggstance::geom_linerangeh(aes(y = equation, xmin = lwr, xmax = upr, colour = Parameter), 
+                              position = ggstance::position_dodgev(height = 0.5)) + 
+    geom_point(aes(y = equation, x = value, colour = Parameter), 
+               fill = "white", 
+               size = 1, stroke = 1, shape = 21,  
+               position = ggstance::position_dodgev(height = 0.5)) + 
+    scale_color_manual(values = tol5qualitative) + 
+    facet_wrap( ~ Creatinine_type + eGFR_cut, scales = "free", ncol = 3, nrow = 2) + 
+    ggplot_theme() + 
+    theme(strip.background = element_blank(), 
+          axis.text = element_text(size = rel(1)),
+          axis.title.y = element_blank()) + 
+    xlab("Estiamted parameter value") +
+    ggtitle("S13: By eGFR and Creattype")
+
+ggsave(file.path(fig_export_dir, "p.S13_eGFR_Creattype.png"), width = 15, height = 10)
+```
+
+
 ```{r dose_assesment, echo = F, eval = F}
 Results_CreatType_dose <- Validation_fitted_df %>%
   group_by(equation, Creatinine_type) %>%
