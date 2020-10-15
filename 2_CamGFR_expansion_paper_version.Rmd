@@ -675,7 +675,7 @@ Creatinine_data_multi <- Adden_long_combined %>%
   filter(Creat*88.4 < 400)
 
 give.n <- function(x){
-  return(c(y = median(x), label = length(x))) 
+  return(c(y = median(x)+0.04, label = length(x))) 
   # experiment with the multiplier to find the perfect position
 }
 
@@ -726,7 +726,6 @@ method_colors <- c("IDMS"="#fdae61", "Non-IDMS"="#666666")
 ```
 
 ```{r creatinine measures over time and method}
-
 data_cam <- Creatinine_data_multi %>%
   filter(!is.na(Date_creat)) %>%
   mutate(Creatinine_type = factor(Creatinine_type,
@@ -797,7 +796,7 @@ p_cambridge_3methods_timeline <- ggplot(data=data_cam,
         strip.text =  element_text(color="white")
         )
 
-cambridge_stat_3methods_tbl <- tableGrob(cambridge_stat_3methods[,c(2:5,8)],
+cambridge_stat_3methods_tbl <- tableGrob(cambridge_stat_3methods[,c(2:4)],
                                          rows=NULL)
 
 legend_method <- cowplot::get_legend(p_cambridge_distribution_3methods)
@@ -810,130 +809,11 @@ figure_row <- plot_grid(p_cambridge_3methods_timeline,
 
 p_cambridge_3methods <- plot_grid(figure_row, legend_method, nrow=2,
           rel_heights=c(8,1))
-```
 
-```{timeline for Cambridge and Manchester with 2 different measurment methods}
-p_cambridge_2methods_timeline <- ggplot(data=data_cam,
-                               aes(y = (Creat), x = Date_creat)) + 
-  geom_point(colour = "#5b4e9f", alpha = 0.1, stroke = 0) + 
-  geom_smooth(aes(group = Creatinine_type), colour = "white", method = "gam",
-              size = rel(2),
-              formula = y ~ s(x, bs = "cs", k=5)) +
-  geom_smooth(aes(group = Creatinine_type, color = Creatinine_type),
-              method = "gam",
-              size = rel(1),
-              formula = y ~ s(x, bs = "cs", k=5),
-              show.legend = FALSE) +
-  geom_vline(xintercept = as.Date(c("2013-12-12")),
-             linetype = "dashed") +
-  scale_y_continuous(breaks= c(0.3, 0.6, 1.2, 2.4, 4.8), trans = "log10",
-                     limits = c(0.3, 4.8)) +
-  scale_color_manual(values = method_colors) + 
-  scale_x_date(breaks = pretty_breaks(6), expand = c(0, 0)) + 
-  xlab("Date") +
-  ylab("SCr") + 
-  ggplot_theme() +
-  theme(axis.text = element_text(size=text_size),
-        axis.title = element_text(size=title_size),
-        plot.margin = unit(c(0,0,0.1,0.1), "cm")
-        )
-
-cambridge_stat_2methods <- compare_means(Creat ~ Creatinine_type,
-                                    data_cam,
-                                    method="t.test")
-p_cambridge_distribution_2methods <- ggplot() + 
-  geom_density(data=data_cam, aes(y=Creat, color=Creatinine_type))  +
-  geom_text(aes(label=paste("p", cambridge_stat_2methods$p.format),
-                x=2.2, y=1.5), size=label_size, hjust="left") +
-  scale_y_continuous(breaks= c(0.3, 0.6, 1.2, 2.4, 4.8), trans = "log10",
-                     limits = c(0.3, 4.8)) +
-  scale_color_manual(values = method_colors) + 
-  labs(y = "SCr",
-       color="Method") +
-  ggplot_theme() +
-  theme(axis.text.x = element_text(size=text_size),
-        axis.title.x = element_text(size=title_size),
-        axis.text.y = element_blank(),
-        axis.title.y = element_blank(),
-        axis.line.y = element_blank(),
-        axis.ticks.y = element_blank(),
-        plot.margin = unit(c(0,0,0.1,0.1), "cm"),
-        legend.position = "bottom")
-
-legend_2methods <- cowplot::get_legend(p_cambridge_distribution_2methods)
-
-p_cambridge_2methods <-
-  plot_grid(p_cambridge_2methods_timeline, 
-            p_cambridge_distribution_2methods + theme(legend.position = "none"),
-            ncol=2,
-            rel_widths = c(5,1))
-
-p_manchester_timeline <- ggplot(data=data_manchester,
-                       aes(y = (Creat), x = Date_creat)) +
-  geom_point(color="#CC6677", alpha = 0.1, stroke = 0) +
-  geom_smooth(
-    aes(group = Creatinine_type),
-    colour = "white",
-    method = "gam",
-    size = rel(2),
-    formula = y ~ s(x, bs = "cs", k = 5)
-  ) +
-  geom_smooth(
-    aes(group = Creatinine_type, color=Creatinine_type),
-    method = "gam",
-    size = rel(1),
-    formula = y ~ s(x, bs = "cs", k = 5),
-    show.legend = FALSE
-  ) +
-  geom_vline(xintercept = as.Date("2016-06-08"), linetype = "dashed") +
-  scale_color_manual(values = method_colors) + 
-  scale_x_date(breaks = pretty_breaks(3), expand = c(0, 0)) +
-  scale_y_continuous(
-    breaks = c(0.3, 0.6, 1.2, 2.4, 4.8),
-    trans = "log10",
-    limits = c(0.3, 4.8)
-  ) +
-  xlab("Date") +
-  ylab("SCr") +
-  ggplot_theme() +
-  theme(axis.text = element_text(size=text_size),
-        axis.title = element_text(size=title_size),
-        plot.margin = unit(c(0,0,0.1,0.1), "cm")
-        )
-
-manchester_stat <- compare_means(Creat ~ Creatinine_type,
-                                    data_manchester,
-                                    method="t.test")
-p_manchester_distribution <- ggplot() + 
-  geom_density(data=data_manchester,
-               aes(y=Creat, color=Creatinine_type))  +
-  geom_text(aes(label=paste("p", manchester_stat$p.format),
-                x=2.2, y=1.5), size=label_size, hjust="left") +
-  scale_y_continuous(breaks= c(0.3, 0.6, 1.2, 2.4, 4.8), trans = "log10",
-                     limits = c(0.3, 4.8)) +
-  scale_color_manual(values = method_colors) + 
-  labs(y = "SCr",
-       color="Method") +
-  ggplot_theme() +
-  theme(axis.text.x = element_text(size=text_size),
-        axis.title.x = element_text(size=title_size),
-        axis.text.y = element_blank(),
-        axis.title.y = element_blank(),
-        axis.line.y = element_blank(),
-        axis.ticks.y = element_blank(),
-        plot.margin = unit(c(0,0,0.1,0.1), "cm"),
-        legend.position = "bottom")
-
-p_manchester <-
-  plot_grid(p_manchester_timeline, 
-            p_manchester_distribution + theme(legend.position = "none"),
-            ncol=2,
-            rel_widths = c(5,1))
-
-ggsave(plot=pairwise_all,
-       filename = "Creatinine_timelines_all_supplement.pdf", 
+ggsave(plot=p_cambridge_3methods,
+       filename = "Creatinine_cambridge_timeline_supplement.pdf", 
        path = fig_export_dir,
-       width = 25, height = 20,  units = "cm")
+       width = 30, height = 10,  units = "cm")
 ```
 
 ## IDMS by method (enzymatic and jaffe) and non-IDMS
@@ -1147,37 +1027,162 @@ ggsave(plot=pairwise_all,
        width = 25, height = 20,  units = "cm")
 ```
 
+```{r timeline for Cambridge and Manchester with 2 different measurment methods}
+p_cambridge_2methods_timeline <- ggplot(data=data_cam,
+                               aes(y = (Creat), x = Date_creat)) + 
+  geom_point(colour = "#5b4e9f", alpha = 0.1, stroke = 0) + 
+  geom_smooth(aes(group = Creatinine_type), colour = "white", method = "gam",
+              size = rel(2),
+              formula = y ~ s(x, bs = "cs", k=5)) +
+  geom_smooth(aes(group = Creatinine_type, color = Creatinine_type),
+              method = "gam",
+              size = rel(1),
+              formula = y ~ s(x, bs = "cs", k=5),
+              show.legend = FALSE) +
+  geom_vline(xintercept = as.Date(c("2013-12-12")),
+             linetype = "dashed") +
+  scale_y_continuous(breaks= c(0.3, 0.6, 1.2, 2.4, 4.8), trans = "log10",
+                     limits = ylim) +
+  scale_color_manual(values = method_colors) + 
+  scale_x_date(breaks = pretty_breaks(6), expand = c(0, 0)) + 
+  xlab("Date") +
+  ylab("SCr") + 
+  ggplot_theme() +
+  theme(axis.text = element_text(size=text_size),
+        axis.title = element_text(size=title_size),
+        plot.margin = unit(c(0.5,0,0.1,0), "cm")
+        )
+
+cambridge_stat_2methods <- compare_means(Creat ~ Creatinine_type,
+                                    data_cam,
+                                    method="t.test")
+p_cambridge_distribution_2methods <- ggplot() + 
+  geom_density(data=data_cam, aes(y=Creat, color=Creatinine_type))  +
+  geom_text(aes(label=paste("p", cambridge_stat_2methods$p.format),
+                x=1.8, y=1.5), size=label_size, hjust="left") +
+  scale_y_continuous(breaks= c(0.3, 0.6, 1.2, 2.4, 4.8), trans = "log10",
+                     limits = ylim) +
+  scale_x_continuous(limits =c(0,5)) +
+  scale_color_manual(values = method_colors) + 
+  labs(y = "SCr",
+       color="Method") +
+  ggplot_theme() +
+  theme(axis.text.x = element_text(size=text_size),
+        axis.title.x = element_text(size=title_size),
+        axis.text.y = element_blank(),
+        axis.title.y = element_blank(),
+        axis.line.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        plot.margin = unit(c(0.5,0,0.1,-0.2), "cm"),
+        legend.position = "bottom")
+
+legend_2methods <- cowplot::get_legend(p_cambridge_distribution_2methods)
+
+p_manchester_timeline <- ggplot(data=data_manchester,
+                       aes(y = (Creat), x = Date_creat)) +
+  geom_point(color="#CC6677", alpha = 0.1, stroke = 0) +
+  geom_smooth(
+    aes(group = Creatinine_type),
+    colour = "white",
+    method = "gam",
+    size = rel(2),
+    formula = y ~ s(x, bs = "cs", k = 5)
+  ) +
+  geom_smooth(
+    aes(group = Creatinine_type, color=Creatinine_type),
+    method = "gam",
+    size = rel(1),
+    formula = y ~ s(x, bs = "cs", k = 5),
+    show.legend = FALSE
+  ) +
+  geom_vline(xintercept = as.Date("2016-06-08"), linetype = "dashed") +
+  scale_color_manual(values = method_colors) + 
+  scale_x_date(breaks = pretty_breaks(4), expand = c(0, 0)) +
+  scale_y_continuous(
+    breaks = c(0.3, 0.6, 1.2, 2.4, 4.8),
+    trans = "log10",
+    limits = ylim
+  ) +
+  xlab("Date") +
+  ylab("SCr") +
+  ggplot_theme() +
+  theme(axis.text = element_text(size=text_size),
+        axis.title = element_text(size=title_size),
+        plot.margin = unit(c(0.5,0,0.1,0), "cm")
+        )
+
+manchester_stat <- compare_means(Creat ~ Creatinine_type,
+                                    data_manchester,
+                                    method="t.test")
+p_manchester_distribution <- ggplot() + 
+  geom_density(data=data_manchester,
+               aes(y=Creat, color=Creatinine_type))  +
+  geom_text(aes(label=paste("p", manchester_stat$p.format),
+                x=1.8, y=1.5), size=label_size, hjust="left") +
+  scale_y_continuous(breaks= c(0.3, 0.6, 1.2, 2.4, 4.8), trans = "log10",
+                     limits = ylim) +
+  scale_x_continuous(limits =c(0,5)) +
+  scale_color_manual(values = method_colors) + 
+  labs(y = "SCr",
+       color="Method") +
+  ggplot_theme() +
+  theme(axis.text.x = element_text(size=text_size),
+        axis.title.x = element_text(size=title_size),
+        axis.text.y = element_blank(),
+        axis.title.y = element_blank(),
+        axis.line.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        plot.margin = unit(c(0.5,0,0.1,-0.2), "cm"),
+        legend.position = "bottom")
+
+p_manchester <-
+  plot_grid(p_manchester_timeline, 
+            p_manchester_distribution + theme(legend.position = "none"),
+            ncol=2,
+            rel_widths = c(5,1))
+```
+
 ## Simple comparison IDMS to non-IDMS
 ```{r, eval=T}
+ylim <- c(0.3,6)
 idms <-  df_mixed %>%
   filter(Creatinine_type == "IDMS") 
 
 idms_stat <- compare_means(Creat ~ Centre, idms, method="t.test")
 p_idms <- ggplot(data=idms,
        aes(x = Centre, y = Creat, fill=Centre)) + 
-  geom_violin(position = "dodge", width = 0.9, show.legend = showlegends,
-              draw_quantiles=0.5, color="grey"
+  geom_violin(position = "dodge", width = 0.9,
+              draw_quantiles=0.5, color=method_colors[1], alpha=0.8,
+              show.legend = FALSE
               ) + 
   stat_compare_means(aes(x = 10^Creat),
                      data= idms,
                      comparisons = list(c(1,2), c(1,3), c(3,2)),
                      method = "t.test",
                      label = "p.format",
-                     bracket.size = 0.3, 
+                     bracket.size = 0.3,
+                     tip.length = 0.01,
                      inherit.aes = F,
-                     label.y = c(4.6, 5.5, 6.8),
+                     label.y = c(log10(2.5),log10(3.5), log10(5)),
                      size=label_size
   ) +
-  coord_trans(y = "log10", ylim = c(exp(-1.8), exp(2.15))) +
-  scale_y_continuous(breaks= c(0.3, 0.6, 1.2, 2.4, 4.8)) +
+    stat_summary(data = idms, 
+               fun.data = give.n, geom = "text", 
+               position = position_dodge(width = 0.9), 
+               size = label_size, colour = "white") + 
+  scale_y_continuous(breaks= c(0.3, 0.6, 1.2, 2.4, 4.8), trans = "log10",
+                     limits = ylim ) +
   scale_fill_manual(values=centre_colors) +
   labs(fill = "Centre",
        y="SCr",
        x="Centre") +
   ggplot_theme() +
   theme(axis.text = element_text(size=text_size),
-        axis.title = element_text(size=title_size)
-        )
+        axis.title = element_text(size=title_size),
+        plot.margin = unit(c(0.5,0,0.1,0.1), "cm"),
+        legend.position = "bottom"
+        ) 
+
 
 nonidms <-  df_mixed %>%
   filter(Creatinine_type == "Non-IDMS") 
@@ -1186,28 +1191,36 @@ nonidms_stat <- compare_means(Creat ~ Centre, nonidms, method="t.test")
 p_nonidms <- ggplot(data=nonidms,
        aes(x = Centre, y = Creat, fill=Centre)) + 
   geom_violin(position = "dodge", width = 0.9, show.legend = showlegends,
-              draw_quantiles=0.5, color="grey"
+              draw_quantiles=0.5, color=method_colors[2], alpha=0.8
               ) + 
+  scale_y_continuous(breaks= c(0.3, 0.6, 1.2, 2.4, 4.8),
+                     trans = "log10",
+                     limits = ylim 
+                     ) +
   stat_compare_means(aes(x = 10^Creat),
                      data= nonidms,
                      comparisons = list(c(1,2)),
                      method = "t.test",
                      label = "p.format",
                      bracket.size = 0.3, 
+                     tip.length = 0.01,
                      inherit.aes = F, 
-                     step.increase =0.2
-  ) +
-  coord_trans(y = "log10", ylim = c(exp(-1.8), exp(2.15))) +
-  scale_y_continuous(breaks= c(0.3, 0.6, 1.2, 2.4, 4.8)) +
+                     step.increase =0.2,
+                     size=label_size
+  ) + 
+  stat_summary(data = nonidms, 
+               fun.data = give.n, geom = "text", 
+               position = position_dodge(width = 0.9), 
+               size = label_size, colour = "white") + 
   scale_fill_manual(values=centre_colors) +
   labs(fill = "Centre",
        y="SCr",
        x="Center") +
   ggplot_theme() +
   theme(axis.text = element_text(size=text_size),
-        axis.title = element_text(size=title_size)
+        axis.title = element_text(size=title_size),
+        plot.margin = unit(c(0.5,0,0.1,0.1), "cm")
         )
-
 
 p_legends <- ggplot(data=df_mixed,
                     aes(y = x, x = Creat, fill=Centre, color=Creatinine_type)) + 
@@ -1221,7 +1234,7 @@ p_legends <- ggplot(data=df_mixed,
   ggplot_theme() +
   theme(legend.position = "bottom",
         legend.direction = "horizontal",
-        legend.box="vertical",
+        legend.box="horizontal",
         legend.text = element_text(size=text_size),
         legend.title = element_text(size=title_size),
         legend.box.just = "left") + 
@@ -1229,34 +1242,32 @@ p_legends <- ggplot(data=df_mixed,
                               keywidth = 0.5,keyheight = 0.5,),
          fill = guide_legend(override.aes = list(size = 0.1),
                              keywidth = 0.5,keyheight = 0.5,
-         ))
+         ) )
 plot_legend <- cowplot::get_legend(p_legends)
 
-layout <- "
-aa#gg#
-bbcc##
-ddeeff
-"
-pairwise_plots <- wrap_plots(a = p_idms_enzymatic_distribution,
-                    b = p_jaffe_vs_enzymatic,
-                    c = p_idms_jaffe_distribution,
-                    d = p_enzymatic_idms_vs_jaffe_nonidms,
-                    e = p_jaffe_idms_vs_jaffe_nonidms,
-                    f = p_nonidms_jaffe_distribution,
-                    g = plot_legend,
-                    design = layout) & 
-  theme(plot.margin = unit(c(0,0,0.1,0.1), "cm"))
+upper_row <- plot_grid(p_idms, 
+          p_cambridge_2methods_timeline,
+          p_cambridge_distribution_2methods + theme(legend.position = "none"),
+          ncol=3,
+          rel_widths = c(2, 2.5, 0.7),
+          labels = c("A", "C", "")
+)
 
-pairwise_plots
+lower_row <- plot_grid(p_nonidms, 
+          p_manchester_timeline,
+          p_manchester_distribution + theme(legend.position = "none"),
+          ncol=3,
+          rel_widths = c(2, 2.5, 0.7),
+          labels = c("B", "D", "")
+)
 
 
-creat_fig <- plot_grid(plot1, top_plot, ncol =1, rel_heights = c(1.3, 1))
-
+main_creatinine <- plot_grid(upper_row, lower_row,plot_legend, nrow=3,
+          rel_heights = c(3, 3, 1))
 ggsave(filename = "Creatinine_comparison.pdf", 
-       plot = creat_fig, 
+       plot = main_creatinine, 
        path = fig_export_dir,
-       width = 25, height = 20,  units = "cm")
-
+       width = 18, height = 10,  units = "cm")
 ```
 
 
