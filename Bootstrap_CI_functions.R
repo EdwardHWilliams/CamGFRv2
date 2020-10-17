@@ -343,6 +343,75 @@ bootstrap_plots <- function(results, x, group, colour, colour_values = NULL){
 
 
 
+################################################################################
+# Permutation test based on paper by Hilko van der Voet 1994
+################################################################################
+
+Squared_error_permutation_test <- 
+  function(x1, x2, sample_index = NULL, R = 2000, return_all = F){
+  
+  d = x1 - x2
+  t_star = mean(d)
+  t_star
+  
+  if(is.null(sample_index)){
+    sample_index =  plyr::rlply(R, if_else(runif(d) < 0.5, -1, 1)) 
+  }
+  
+  t = sapply(sample_index, function(x) mean(d*x))
+  
+
+  p = (1 + sum(abs(t_star) < abs(t))) / (R+1)
+  
+  if(return_all == T){
+    return(m = m, n =n, func1 = func(x1), func2 = func(x2), p = p)
+  } else{
+    return(p)
+  }
+  
+  
+}
+
+
+Squared_error_permutation_test_all_equations <- 
+  function(df, R = 10000, seed = 1234, Dose = F){
+  # x must be a datframe with columns equation, resid, fitted and GFR
+  # equal number of observations must be in each group
+  
+  e =  df %>% 
+    select(PatientID, GFR_index, equation, resid) %>% 
+    mutate(resid = resid^2) %>%
+    pivot_wider(names_from = equation, values_from = resid) %>%
+    select(-PatientID, -GFR_index) %>%
+    as.data.frame() 
+  
+  set.seed(seed)
+  index =  plyr::rlply(R, if_else(runif(nrow(e)) < 0.5, -1, 1)) 
+  
+  combinations <- combn(1:ncol(e), 2, simplify = F)
+  
+  pvals = lapply(combinations, function(c){
+    Squared_error_permutation_test(
+      e[,c[1]], e[,c[2]], sample_index = index, R = R
+      )
+    })
+  
+  a_func = function(name1, name2){
+    mean(e[,as.character(name1)] - e[,as.character(name2)])
+  }
+  
+  sapply(combinations, function(c) colnames(e)[c]) %>% 
+    t() %>%
+    as.data.frame() %>%
+    `colnames<-`(c("equation1", "equation2")) %>%
+    # rename(equation1 = V1, equation2 = V2) %>%
+    mutate(stat = mapply(a_func, .$equation1, .$equation2)) %>% 
+    mutate(p_value = unlist(pvals)) 
+
+}
+
+
+
 
 
 
