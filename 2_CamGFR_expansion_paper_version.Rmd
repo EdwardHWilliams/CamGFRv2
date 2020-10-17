@@ -2715,24 +2715,38 @@ so that the model is suitable for IDMS data. The CKD-EPI was developed on IDMS
 data. However, we and other have shown it to be accurate at estimating GFR using
 non-IDMS
 
-```{r performance_IDMS_data_tables_all, include = T, echo=F, cache=T}
+```{r data_tables_all, include = T, echo=F, cache=T}
 
-Clean_output_table <- function(table){
-  table %>% 
+Clean_output_table <- function(table, include_p10_p30 = F){
+  t = table %>% 
     ungroup() %>%
     mutate_at(.vars = vars(median_fitted, starts_with("RMSE"),
                            starts_with("IQR"),
                            starts_with("median")), 
               list(~round(., 2))) %>%
-    mutate_at(.vars = vars(starts_with("P20")), 
+    mutate_at(.vars = vars(starts_with("P")), 
               list(~round(., 3))) %>%
     rename("median fitted value" = median_fitted) %>%
     mutate(RMSE = paste0(RMSE, " (", RMSE_lwr, ", ", RMSE_upr, ")")) %>%
     mutate(median = paste0(median, " (", median_lwr, ", ", median_upr, ")")) %>%
-    mutate(IQR = paste0(IQR, " (", IQR_lwr, ", ", IQR_upr, ")")) %>%
-    mutate("P20 dose" = paste0(P20_dose, " (", P20_dose_lwr, ", ", P20_dose_upr, ")")) %>%
-    select(-RMSE_lwr, -RMSE_upr, -median_lwr, -median_upr, -IQR_lwr, -IQR_upr,
-           -P20_dose_lwr, -P20_dose_upr, -P20_dose)
+    mutate(IQR = paste0(IQR, " (", IQR_lwr, ", ", IQR_upr, ")")) 
+    if(include_p10_p30 == T){
+      t %>% 
+        mutate("Dose P10" = paste0(P10_dose, " (", P10_dose_lwr, ", ", P10_dose_upr, ")")) %>%
+        mutate("Dose P20" = paste0(P20_dose, " (", P20_dose_lwr, ", ", P20_dose_upr, ")")) %>%
+        mutate("Dose P30" = paste0(P30_dose, " (", P30_dose_lwr, ", ", P30_dose_upr, ")")) %>%
+        select(-RMSE_lwr, -RMSE_upr, -median_lwr, -median_upr, -IQR_lwr, -IQR_upr,
+               -P10_dose_lwr, -P10_dose_upr, -P10_dose,
+               -P20_dose_lwr, -P20_dose_upr, -P20_dose,
+               -P30_dose_lwr, -P30_dose_upr, -P30_dose)
+    } else { 
+      t %>% 
+        mutate("Dose P20" = paste0(P20_dose, " (", P20_dose_lwr, ", ", P20_dose_upr, ")")) %>%
+        select(-RMSE_lwr, -RMSE_upr, -median_lwr, -median_upr, -IQR_lwr, -IQR_upr,
+               -P20_dose_lwr, -P20_dose_upr, -P20_dose)
+        }
+    
+    
 }
 
 
@@ -2773,106 +2787,190 @@ Validation_fitted_df <- Validation_fitted_df_all %>%
 
 Results_all <- Validation_fitted_df_all %>%
   group_by(equation) %>%
-  Statistic_summary_withP20_both() %>%
-  # select(-P20_dose, -P20_dose_lwr, -P20_dose_upr) %>%
+  Statistic_summary_withP10_P20_P30() %>%
   arrange(RMSE)
-# Results_all
 
 Results_Centre_all <- Validation_fitted_df_all %>%
   group_by(equation, Centre) %>%
-  Statistic_summary_withP20_both() %>%
-  # select(-P20_dose, -P20_dose_lwr, -P20_dose_upr) %>%
+  Statistic_summary_withP10_P20_P30() %>%
+  arrange(Centre, RMSE)
+
+Results_Centre_CreatType <- Validation_fitted_df_all %>%
+  group_by(equation, Centre) %>%
+  Statistic_summary_withP10_P20_P30() %>%
   arrange(Centre, RMSE)
 
 
+
+# S8
 Results_CreatType_all <- Validation_fitted_df_all %>%
   group_by(equation, Creatinine_type) %>%
-  Statistic_summary_withP20_both() %>%
-  # select(-P20_dose, -P20_dose_lwr, -P20_dose_upr) %>%
+  Statistic_summary_withP10_P20_P30() %>%
   arrange(Creatinine_type, RMSE)
 
-Results_CreatType <- Results_CreatType_all %>%
-  filter(equation %in% c("CamGFR v2", "CKD-EPI", "MDRD", "LM", "FAS",
-                         "CamGFR v1")) 
+# S9
+Results_Age_Creattype_all <- Validation_fitted_df_all %>% 
+  mutate(Age_cut = cut_number(Age, 5)) %>% 
+  group_by(equation, Age_cut, Creatinine_type) %>%
+  Statistic_summary_with_doseP20() %>% 
+  ungroup() %>% 
+  arrange(Creatinine_type, Age_cut, RMSE)
 
-Results_Centre_CreatType_all <- Validation_fitted_df_all %>%
-  group_by(equation, Centre, Creatinine_type) %>%
-  Statistic_summary_withP20_both() %>%
-  # select(-P20_dose, -P20_dose_lwr, -P20_dose_upr) %>%
-  arrange(Centre, Creatinine_type, RMSE)
-Results_Centre_CreatType <- Results_Centre_CreatType_all %>%
+# S10
+Results_BSA_Creattype_all <- Validation_fitted_df_all %>% 
+  mutate(BSA_cut = cut_number(BSA, 5)) %>% 
+  group_by(equation, BSA_cut, Creatinine_type) %>%
+  Statistic_summary_with_doseP20() %>% 
+  ungroup() %>%
+  arrange(Creatinine_type, BSA_cut, RMSE) 
+
+# S11
+Results_Sex_Creattype_all <- Validation_fitted_df_all %>% 
+  group_by(equation, Sex, Creatinine_type) %>%
+  Statistic_summary_with_doseP20() %>% 
+  ungroup() %>%
+  arrange(Creatinine_type, Sex, RMSE) 
+
+# S12
+Results_PatientType_CreatType_all <- Validation_fitted_df_all %>%
+  mutate(Patient_type = ifelse(Patient_type == "Unknown", "Non-Cancer",
+                               Patient_type)) %>%
+  group_by(equation, Patient_type, Creatinine_type) %>%
+  Statistic_summary_with_doseP20() %>%
+  arrange(Creatinine_type, Patient_type, RMSE) 
+
+# S13 
+Results_eGFR_Creattype_all <- Validation_fitted_df_all %>% 
+  mutate(eGFR_cut = cut(fitted, breaks =  c(0, 60, 90, 310))) %>% 
+  group_by(equation, eGFR_cut, Creatinine_type) %>%
+  Statistic_summary_with_doseP20() %>% 
+  arrange(Creatinine_type, eGFR_cut, RMSE) %>%
+  ungroup() 
+
+
+```
+
+
+```{r data_tables_all_selected, echo = F, include = F, cache=T}
+
+
+Results <- Results_all %>% 
   filter(equation %in% c("CamGFR v2", "CKD-EPI", "MDRD", "LM", "FAS",
                          "CamGFR v1")) 
-# 
-# # 
-Results_PatientType_all <- Validation_fitted_df_all %>%
-  group_by(equation, Patient_type) %>%
-  Statistic_summary_withP20_both() %>%
-  # select(-P20_dose, -P20_dose_lwr, -P20_dose_upr) %>%
-  arrange(Patient_type, RMSE)
-# Results_PatientType <- Results_PatientType_all %>%
-#   filter(equation %in% c("Refit_CamGFR", "LM", "CKD-EPI", "MDRD"))
-# 
-Results_PatientType_CreatType_all <- Validation_fitted_df_all %>%
-  group_by(equation, Patient_type, Creatinine_type) %>%
-  Statistic_summary_withP20_both() %>%
-  # select(-P20_dose, -P20_dose_lwr, -P20_dose_upr) %>%
-  arrange(Creatinine_type, Patient_type, RMSE) 
-# Results_PatientType_CreatType <- Results_PatientType_CreatType_all %>%
-#   filter(equation %in% c("Refit_CamGFR", "LM", "CKD-EPI", "MDRD"))
-# 
-# 
-Results_Diagnosis_all <- Validation_fitted_df_all %>%
-  group_by(equation, Diagnosis) %>%
-  Statistic_summary_withP20_both() %>%
-  # select(-P20_dose, -P20_dose_lwr, -P20_dose_upr) %>%
-  arrange(Diagnosis, RMSE)
-# Results_Diagnosis <- Results_Diagnosis_all %>%
-#   filter(equation %in% c("Refit_CamGFR", "LM", "CKD-EPI", "MDRD"))
-# 
-Results_Diagnosis_CreatType_all <- Validation_fitted_df_all %>%
-  group_by(equation, Diagnosis, Creatinine_type) %>%
-  Statistic_summary_withP20_both() %>%
-  # select(-P20_dose, -P20_dose_lwr, -P20_dose_upr) %>% 
-  arrange(Creatinine_type, Diagnosis, RMSE) 
-# Results_Diagnosis_CreatType <- Results_Diagnosis_CreatType_all %>%
-#   filter(equation %in% c("Refit_CamGFR", "LM", "CKD-EPI", "MDRD"))
-# 
-# 
-# 
-# Clean_output_table(Results_CreatType_all) %>%
-#   kable(caption = "Results of the 5 candidate models along with CKD-EPI and MDRD models") %>% 
-#   kable_styling(latex_options="scale_down")
+Clean_Results <- Clean_output_table(Results, include_p10_p30 = T)
+
+Results_Centre <- Results_Centre_all %>%
+   filter(equation %in% c("CamGFR v2", "CKD-EPI", "MDRD", "LM", "FAS",
+                         "CamGFR v1")) 
+Clean_Results_Centre <- Clean_output_table(Results_Centre, include_p10_p30 = T)
+
+Results_Centre_CreatType <-  Results_Centre_CreatType_all %>%
+     filter(equation %in% c("CamGFR v2", "CKD-EPI", "MDRD", "LM", "FAS",
+                         "CamGFR v1")) 
+Clean_Results_Cetre_CreatType <- Clean_output_table(Results_Centre_CreatType, include_p10_p30 = T)
+
+
+
+# S8
+Results_CreatType <- Results_CreatType_all %>%
+   filter(equation %in% c("CamGFR v2", "CKD-EPI", "MDRD", "LM", "FAS",
+                         "CamGFR v1")) 
+Clean_Results_CreatType <- Clean_output_table(Results_CreatType, include_p10_p30 = T)
+
+
+# S9
+Results_Age_Creattype <- Results_Age_Creattype_all %>%
+   filter(equation %in% c("CamGFR v2", "CKD-EPI", "MDRD", "LM", "FAS",
+                         "CamGFR v1")) 
+Clean_Results_Age_Creattype <- Clean_output_table(Results_Age_Creattype)
+
+# S10
+Results_BSA_Creattype <- Results_BSA_Creattype_all %>%
+   filter(equation %in% c("CamGFR v2", "CKD-EPI", "MDRD", "LM", "FAS",
+                         "CamGFR v1"))  
+Clean_Results_BSA_Creattype <- Clean_output_table(Results_BSA_Creattype)
+
+
+# S11
+Results_Sex_Creattype <- Results_Sex_Creattype_all %>%
+   filter(equation %in% c("CamGFR v2", "CKD-EPI", "MDRD", "LM", "FAS",
+                         "CamGFR v1"))  
+Clean_Results_Sex_Creattype <- Clean_output_table(Results_Sex_Creattype)
+
+# S12
+Results_PatientType_Creattype <- Results_PatientType_Creattype_all %>% 
+  filter(equation %in% c("CamGFR v2", "CKD-EPI", "MDRD", "LM", "FAS",
+                         "CamGFR v1")) 
+Clean_Results_PatientType_Creattype <- Clean_output_table(Results_PatientType_Creattype)
+
+# S13 
+Results_eGFR_Creattype <- Results_eGFR_Creattype_all %>% 
+      filter(equation %in% c("CamGFR v2", "CKD-EPI", "MDRD", "LM", "FAS",
+                         "CamGFR v1")) 
+Clean_Results_eGFR_Creattype <- Clean_output_table(Results_eGFR_Creattype)
+
+
+```
+
+
+```{r Output_paper}
+
+# S8
+Clean_Results_CreatType  %>%
+  write_csv(path = file.path(fig_export_dir, "S8.csv"))
+
+# S9
+Clean_Results_Age_Creattype  %>%
+  write_csv(path = file.path(fig_export_dir, "S9.csv"))
+
+# S10
+Clean_Results_BSA_Creattype  %>%
+  write_csv(path = file.path(fig_export_dir, "S10.csv"))
+
+# S11
+Clean_Results_Sex_Creattype  %>%
+  write_csv(path = file.path(fig_export_dir, "S11.csv"))
+
+# S12
+Clean_Results_PatientType_Creattype  %>%
+  write_csv(path = file.path(fig_export_dir, "S12.csv"))
+
+# S13 
+Clean_Results_eGFR_Creattype  %>%
+  write_csv(path = file.path(fig_export_dir, "S12.csv"))
+
 ```
 
 
 
 
+
+
+
+
+
+
+
+
+
 ```{r Supplemental_TablesToFigures}
-Results_list <- list(Results = Results, 
-                     Results_CreatType = Results_CreatType, 
-                     Results_CreatType = Results_CreatType, 
-                     Results_Centre_CreatType = Results_Centre_CreatType, 
-                     Results_Centre = Results_Centre, 
-                     Results_Diagnosis = Results_Diagnosis, 
-                     Results_PatientType_Creattype = Results_PatientType_Creattype, 
-                     Results_Age_Creattype = Results_Age_Creattype, 
-                     Results_BSA_Creattype = Results_BSA_Creattype, 
-                     Results_Sex_Creattype = Results_Sex_Creattype, 
-                     Results_eGFR_Creattype = Results_eGFR_Creattype, 
-                     Results_BSAadj_eGFR_Creattype = Results_BSAadj_eGFR_Creattype, 
-                     Results_BSAadj_eGFR_Creattype_on_BSAadj_eGFR_scale = Results_BSAadj_eGFR_Creattype_on_BSAadj_eGFR_scale)
+Results_list <- list(S8 = Results_CreatType,
+                     S9 = Results_Age_Creattype, 
+                     S10 = Results_BSA_Creattype, 
+                     S11 = Results_Sex_Creattype, 
+                     S12 = Results_PatientType_Creattype, 
+                     S13 = Results_eGFR_Creattype)
 
 save(Results_list, file = "Results_list.RData")
 load("Results_list.RData")
 library(PerformanceAnalytics)
 
 ### Table S8: Results_CreatType
-df <- Results_list[[2]] %>% select(-"median_fitted")
-melt.df <- melt(df[,c("equation", "Creatinine_type", "RMSE", "median", "IQR", "P20", "P20_dose")])
-melt.df_lwr <- melt(df[,c("equation", "Creatinine_type", "RMSE_lwr", "median_lwr", "IQR_lwr", "P20_lwr", "P20_dose_lwr")]) %>% select(-c("equation", "Creatinine_type","variable"))
+df <- Results_list[["S8"]] %>% select(-"median_fitted")
+melt.df <- melt(df[,c("equation", "Creatinine_type", "RMSE", "median", "IQR", "P20_dose")])
+melt.df_lwr <- melt(df[,c("equation", "Creatinine_type", "RMSE_lwr", "median_lwr", "IQR_lwr", "P20_dose_lwr")]) %>% select(-c("equation", "Creatinine_type","variable"))
 names(melt.df_lwr) <- "lwr"
-melt.df_upr <- melt(df[,c("equation", "Creatinine_type", "RMSE_upr", "median_upr", "IQR_upr", "P20_upr", "P20_dose_upr")]) %>% select(-c("equation", "Creatinine_type","variable"))
+melt.df_upr <- melt(df[,c("equation", "Creatinine_type", "RMSE_upr", "median_upr", "IQR_upr", "P20_dose_upr")]) %>% select(-c("equation", "Creatinine_type","variable"))
 names(melt.df_upr) <- "upr"
 
 df2 <- cbind(melt.df, melt.df_lwr, melt.df_upr)[,c("equation","Creatinine_type", "variable", "value", "lwr", "upr")]
@@ -2902,11 +3000,11 @@ ggsave(file.path(fig_export_dir, "p.S8_Results_CreatType.png"), width = 10, heig
 
 ### Table S9: Results_Age_Creattype
 
-df <- Results_list[[7]] %>% select(-"median_fitted")
-melt.df <- melt(df[,c("equation", "Age_cut", "Creatinine_type", "RMSE", "median", "IQR", "P20", "P20_dose")])
-melt.df_lwr <- melt(df[,c("equation", "Age_cut", "Creatinine_type", "RMSE_lwr", "median_lwr", "IQR_lwr", "P20_lwr", "P20_dose_lwr")]) %>% select(-c("equation", "Age_cut", "Creatinine_type","variable"))
+df <- Results_list[["S9"]] %>% select(-"median_fitted")
+melt.df <- melt(df[,c("equation", "Age_cut", "Creatinine_type", "RMSE", "median", "IQR", "P20_dose")])
+melt.df_lwr <- melt(df[,c("equation", "Age_cut", "Creatinine_type", "RMSE_lwr", "median_lwr", "IQR_lwr", "P20_dose_lwr")]) %>% select(-c("equation", "Age_cut", "Creatinine_type","variable"))
 names(melt.df_lwr) <- "lwr"
-melt.df_upr <- melt(df[,c("equation", "Age_cut", "Creatinine_type", "RMSE_upr", "median_upr", "IQR_upr", "P20_upr", "P20_dose_upr")]) %>% select(-c("equation", "Age_cut", "Creatinine_type","variable"))
+melt.df_upr <- melt(df[,c("equation", "Age_cut", "Creatinine_type", "RMSE_upr", "median_upr", "IQR_upr", "P20_dose_upr")]) %>% select(-c("equation", "Age_cut", "Creatinine_type","variable"))
 names(melt.df_upr) <- "upr"
 
 df2 <- cbind(melt.df, melt.df_lwr, melt.df_upr)[,c("equation", "Age_cut", "Creatinine_type", "variable", "value", "lwr", "upr")]
@@ -2937,11 +3035,11 @@ ggsave(file.path(fig_export_dir, "p.S9_Age_Creattype.png"), width = 25, height =
 
 ### Table S10: Results_BSA_Creattype
 
-df <- Results_list[[8]] %>% select(-"median_fitted")
-melt.df <- melt(df[,c("equation", "BSA_cut", "Creatinine_type", "RMSE", "median", "IQR", "P20", "P20_dose")])
-melt.df_lwr <- melt(df[,c("equation", "BSA_cut", "Creatinine_type", "RMSE_lwr", "median_lwr", "IQR_lwr", "P20_lwr", "P20_dose_lwr")]) %>% select(-c("equation", "BSA_cut", "Creatinine_type","variable"))
+df <- Results_list[["S10"]] %>% select(-"median_fitted")
+melt.df <- melt(df[,c("equation", "BSA_cut", "Creatinine_type", "RMSE", "median", "IQR", "P20_dose")])
+melt.df_lwr <- melt(df[,c("equation", "BSA_cut", "Creatinine_type", "RMSE_lwr", "median_lwr", "IQR_lwr", "P20_dose_lwr")]) %>% select(-c("equation", "BSA_cut", "Creatinine_type","variable"))
 names(melt.df_lwr) <- "lwr"
-melt.df_upr <- melt(df[,c("equation", "BSA_cut", "Creatinine_type", "RMSE_upr", "median_upr", "IQR_upr", "P20_upr", "P20_dose_upr")]) %>% select(-c("equation", "BSA_cut", "Creatinine_type","variable"))
+melt.df_upr <- melt(df[,c("equation", "BSA_cut", "Creatinine_type", "RMSE_upr", "median_upr", "IQR_upr", "P20_dose_upr")]) %>% select(-c("equation", "BSA_cut", "Creatinine_type","variable"))
 names(melt.df_upr) <- "upr"
 
 df2 <- cbind(melt.df, melt.df_lwr, melt.df_upr)[,c("equation", "BSA_cut", "Creatinine_type", "variable", "value", "lwr", "upr")]
@@ -2972,11 +3070,11 @@ ggsave(file.path(fig_export_dir, "p.S10_BSA_Creattype.png"), width = 25, height 
 
 ### Table S11: Results_Sex_Creattype
 
-df <- Results_list[[9]] %>% select(-"median_fitted")
-melt.df <- melt(df[,c("equation", "Sex", "Creatinine_type", "RMSE", "median", "IQR", "P20", "P20_dose")])
-melt.df_lwr <- melt(df[,c("equation", "Sex", "Creatinine_type", "RMSE_lwr", "median_lwr", "IQR_lwr", "P20_lwr", "P20_dose_lwr")]) %>% select(-c("equation", "Sex", "Creatinine_type","variable"))
+df <- Results_list[["S11"]] %>% select(-"median_fitted")
+melt.df <- melt(df[,c("equation", "Sex", "Creatinine_type", "RMSE", "median", "IQR", "P20_dose")])
+melt.df_lwr <- melt(df[,c("equation", "Sex", "Creatinine_type", "RMSE_lwr", "median_lwr", "IQR_lwr", "P20_dose_lwr")]) %>% select(-c("equation", "Sex", "Creatinine_type","variable"))
 names(melt.df_lwr) <- "lwr"
-melt.df_upr <- melt(df[,c("equation", "Sex", "Creatinine_type", "RMSE_upr", "median_upr", "IQR_upr", "P20_upr", "P20_dose_upr")]) %>% select(-c("equation", "Sex", "Creatinine_type","variable"))
+melt.df_upr <- melt(df[,c("equation", "Sex", "Creatinine_type", "RMSE_upr", "median_upr", "IQR_upr", "P20_dose_upr")]) %>% select(-c("equation", "Sex", "Creatinine_type","variable"))
 names(melt.df_upr) <- "upr"
 
 df2 <- cbind(melt.df, melt.df_lwr, melt.df_upr)[,c("equation", "Sex", "Creatinine_type", "variable", "value", "lwr", "upr")]
@@ -3007,11 +3105,11 @@ ggsave(file.path(fig_export_dir, "p.S11_Sex_Creattype.png"), width = 10, height 
 
 ### Table S12: Results_PatientType_Creattype
 
-df <- Results_list[[6]] %>% select(-"median_fitted")
-melt.df <- melt(df[,c("equation", "Patient_type", "Creatinine_type", "RMSE", "median", "IQR", "P20", "P20_dose")])
-melt.df_lwr <- melt(df[,c("equation", "Patient_type", "Creatinine_type", "RMSE_lwr", "median_lwr", "IQR_lwr", "P20_lwr", "P20_dose_lwr")]) %>% select(-c("equation", "Patient_type", "Creatinine_type","variable"))
+df <- Results_list[["S12"]] %>% select(-"median_fitted")
+melt.df <- melt(df[,c("equation", "Patient_type", "Creatinine_type", "RMSE", "median", "IQR", "P20_dose")])
+melt.df_lwr <- melt(df[,c("equation", "Patient_type", "Creatinine_type", "RMSE_lwr", "median_lwr", "IQR_lwr", "P20_dose_lwr")]) %>% select(-c("equation", "Patient_type", "Creatinine_type","variable"))
 names(melt.df_lwr) <- "lwr"
-melt.df_upr <- melt(df[,c("equation", "Patient_type", "Creatinine_type", "RMSE_upr", "median_upr", "IQR_upr", "P20_upr", "P20_dose_upr")]) %>% select(-c("equation", "Patient_type", "Creatinine_type","variable"))
+melt.df_upr <- melt(df[,c("equation", "Patient_type", "Creatinine_type", "RMSE_upr", "median_upr", "IQR_upr", "P20_dose_upr")]) %>% select(-c("equation", "Patient_type", "Creatinine_type","variable"))
 names(melt.df_upr) <- "upr"
 
 df2 <- cbind(melt.df, melt.df_lwr, melt.df_upr)[,c("equation", "Patient_type", "Creatinine_type", "variable", "value", "lwr", "upr")]
@@ -3040,11 +3138,11 @@ ggsave(file.path(fig_export_dir, "p.S12_Patienttype_Creattype.png"), width = 15,
 
 ### Table S13: Results_eGFR_Creattype
 
-df <- Results_list[[10]] %>% select(-"median_fitted")
-melt.df <- melt(df[,c("equation", "eGFR_cut", "Creatinine_type", "RMSE", "median", "IQR", "P20", "P20_dose")])
-melt.df_lwr <- melt(df[,c("equation", "eGFR_cut", "Creatinine_type", "RMSE_lwr", "median_lwr", "IQR_lwr", "P20_lwr", "P20_dose_lwr")]) %>% select(-c("equation", "eGFR_cut", "Creatinine_type","variable"))
+df <- Results_list[["S13"]] %>% select(-"median_fitted")
+melt.df <- melt(df[,c("equation", "eGFR_cut", "Creatinine_type", "RMSE", "median", "IQR", "P20_dose")])
+melt.df_lwr <- melt(df[,c("equation", "eGFR_cut", "Creatinine_type", "RMSE_lwr", "median_lwr", "IQR_lwr", "P20_dose_lwr")]) %>% select(-c("equation", "eGFR_cut", "Creatinine_type","variable"))
 names(melt.df_lwr) <- "lwr"
-melt.df_upr <- melt(df[,c("equation", "eGFR_cut", "Creatinine_type", "RMSE_upr", "median_upr", "IQR_upr", "P20_upr", "P20_dose_upr")]) %>% select(-c("equation", "eGFR_cut", "Creatinine_type","variable"))
+melt.df_upr <- melt(df[,c("equation", "eGFR_cut", "Creatinine_type", "RMSE_upr", "median_upr", "IQR_upr", "P20_dose_upr")]) %>% select(-c("equation", "eGFR_cut", "Creatinine_type","variable"))
 names(melt.df_upr) <- "upr"
 
 df2 <- cbind(melt.df, melt.df_lwr, melt.df_upr)[,c("equation", "eGFR_cut", "Creatinine_type", "variable", "value", "lwr", "upr")]
@@ -3070,6 +3168,8 @@ p.Results_eGFR_Creattype <- ggplot(df2) +
 
 ggsave(file.path(fig_export_dir, "p.S13_eGFR_Creattype.png"), width = 15, height = 10)
 ```
+
+
 
 
 ```{r dose_assesment, echo = F, eval = F}
@@ -3112,193 +3212,6 @@ df %>%
   ) %>%
   arrange(-equal) %>% 
   do(my_normal_boot(.$fitted/.$GFR, func = P20_opp, name = "P20")) 
-```
-
-```{r performance_IDMS_data_tables, echo = F, include = F, cache=T}
-
-Clean_results <- function(x){
-  x %>%
-    mutate_if(is.double, list(~round(., 2))) %>%
-    mutate(RMSE = paste0(RMSE, " (", RMSE_lwr, ", ", RMSE_upr, ")")) %>%
-    mutate(median = paste0(median, " (", median_lwr, ", ", median_upr, ")")) %>%
-    mutate(IQR = paste0(IQR, " (", IQR_lwr, ", ", IQR_upr, ")")) %>%
-    mutate(P20 = paste0(P20, " (", P20_lwr, ", ", P20_upr, ")")) %>%
-    mutate(P20_dose = paste0(P20_dose, " (", P20_dose_lwr, ", ",
-                             P20_dose_upr, ")")) %>%
-    rename("Median eGFR" = median_fitted) %>%
-    select(-RMSE_lwr, -RMSE_upr, -median_lwr, -median_upr, -IQR_lwr, -IQR_upr, 
-           -P20_lwr, -P20_upr, -P20_dose_lwr, -P20_dose_upr) 
-}
-
-Results <- Validation_fitted_df %>%
-  group_by(equation) %>%
-  Statistic_summary_withP20_both() %>%
-  # select(-P20_dose, -P20_dose_lwr, -P20_dose_upr) %>%
-  arrange(RMSE)
-Clean_Results <- Clean_results(Results)
-
-
-Results_CreatType <- Validation_fitted_df %>%
-  group_by(equation, Creatinine_type) %>%
-  Statistic_summary_withP20_both() %>%
-  # select(-P20_dose, -P20_dose_lwr, -P20_dose_upr) %>%
-  arrange(Creatinine_type, RMSE)
-Clean_Results_CreatType <- Clean_results(Results_CreatType)
-
-Results_Centre_CreatType <-  Validation_fitted_df %>%
-  group_by(equation, Centre, Creatinine_type) %>%
-  Statistic_summary_withP20_both() %>%
-  # select(-P20_dose, -P20_dose_lwr, -P20_dose_upr) %>%
-  arrange(Centre, Creatinine_type, RMSE)
-Clean_Results_Cetre_CreatType <- Clean_results(Results_Centre_CreatType)
-
-Results_Centre <- Validation_fitted_df %>%
-  group_by(equation, Centre, Creatinine_type) %>%
-  Statistic_summary_withP20_both() %>%
-  # select(-P20_dose, -P20_dose_lwr, -P20_dose_upr) %>%
-  arrange(Centre, Creatinine_type, RMSE) 
-Clean_Results_Centre <- Clean_results(Results_Centre)
-
-Results_Diagnosis <- Validation_fitted_df %>%
-  group_by(equation, Diagnosis) %>%
-  Statistic_summary_withP20_both() %>%
-  # select(-P20_dose, -P20_dose_lwr, -P20_dose_upr) %>%
-  arrange(Diagnosis, RMSE) 
-Clean_Results_Diagnosis <- Clean_results(Results_Diagnosis)
-
-
-
-Results_PatientType_Creattype <- Validation_fitted_df %>%
-  mutate(Patient_type = ifelse(Patient_type == "Unknown", "Non-Cancer",
-                               Patient_type)) %>%
-  group_by(equation, Patient_type, Creatinine_type) %>%
-  Statistic_summary_withP20_both() %>%
-  # select(-P20_dose, -P20_dose_lwr, -P20_dose_upr) %>%
-  arrange(Creatinine_type, Patient_type , RMSE)  %>%
-  ungroup()
-Clean_Results_PatientType_Creattype <-
-  Clean_results(Results_PatientType_Creattype)
-
-Results_Age <- Validation_fitted_df %>% 
-  mutate(Age_cut = cut_number(Age, 5)) %>% 
-  group_by(equation, Creatinine_type, Age_cut) %>%
-  Statistic_summary_withP20_both() %>% 
-  # select(-P20_dose, -P20_dose_lwr, -P20_dose_upr) %>%
-  ungroup() 
-
-Results_Age_Creattype <- Validation_fitted_df %>% 
-  mutate(Age_cut = cut_number(Age, 5)) %>% 
-  group_by(equation, Age_cut, Creatinine_type) %>%
-  Statistic_summary_withP20_both() %>% 
-  # select(-P20_dose, -P20_dose_lwr, -P20_dose_upr) %>%
-  ungroup() %>% 
-  arrange(Creatinine_type, Age_cut, RMSE)
-Clean_Results_Age_Creattype <- Clean_results(Results_Age_Creattype)
-
-Results_BSA_Creattype <- Validation_fitted_df %>% 
-  mutate(BSA_cut = cut_number(BSA, 5)) %>% 
-  group_by(equation, BSA_cut, Creatinine_type) %>%
-  Statistic_summary_withP20_both() %>% 
-  # select(-P20_dose, -P20_dose_lwr, -P20_dose_upr) %>%
-  ungroup() %>%
-  arrange(Creatinine_type, BSA_cut, RMSE) 
-
-Clean_Results_BSA_Creattype <- Clean_results(Results_BSA_Creattype)
-
-Results_Sex_Creattype <- Validation_fitted_df %>% 
-  group_by(equation, Sex, Creatinine_type) %>%
-  Statistic_summary_withP20_both() %>% 
-  # select(-P20_dose, -P20_dose_lwr, -P20_dose_upr) %>%
-  ungroup() %>%
-  arrange(Creatinine_type, Sex, RMSE) 
-Clean_Results_Sex_Creattype <- Clean_results(Results_Sex_Creattype)
-
-Results_eGFR_Creattype <- Validation_fitted_df %>% 
-  mutate(eGFR_cut = cut(fitted, breaks =  c(0, 60, 90, 310))) %>% 
-  group_by(equation, eGFR_cut, Creatinine_type) %>%
-  Statistic_summary_withP20_both() %>% 
-  # select(-P20_dose, -P20_dose_lwr, -P20_dose_upr) %>%
-  arrange(Creatinine_type, eGFR_cut, RMSE) %>%
-  ungroup() 
-Clean_Results_eGFR_Creattype <- Clean_results(Results_eGFR_Creattype)
-
-
-
-
-
-Results_BSAadj_eGFR_Creattype <- Validation_fitted_df %>% 
-  mutate(eGFR_BSA = fitted/BSA*1.73) %>%
-  mutate(eGFR_cut = cut(eGFR_BSA, breaks =  c(0, 60, 90, 310))) %>% 
-  group_by(equation, eGFR_cut, Creatinine_type) %>%
-  Statistic_summary_withP20_both() %>% 
-  # select(-P20_dose, -P20_dose_lwr, -P20_dose_upr) %>%
-  arrange(Creatinine_type, eGFR_cut, RMSE) %>%
-  ungroup() 
-Clean_Results_BSAadj_eGFR_Creattype <-
-  Clean_results(Results_BSAadj_eGFR_Creattype)
-
-Results_BSAadj_eGFR_Creattype_on_BSAadj_eGFR_scale <- Validation_fitted_df %>% 
-  mutate(fitted = fitted/BSA*1.73) %>%
-  mutate(GFR = GFR/BSA*1.73) %>%
-  mutate(resid = GFR - fitted) %>%
-  mutate(eGFR_cut = cut(fitted, breaks =  c(0, 60, 90, 310))) %>% 
-  group_by(equation, eGFR_cut, Creatinine_type) %>%
-  Statistic_summary_withP20_both() %>% 
-  # select(-P20_dose, -P20_dose_lwr, -P20_dose_upr) %>%
-  arrange(Creatinine_type, eGFR_cut, RMSE) %>%
-  ungroup() 
-Clean_Results_BSAadj_eGFR_Creattype_on_BSAadj_eGFR_scale <- Clean_results(Results_BSAadj_eGFR_Creattype_on_BSAadj_eGFR_scale)
-
-
-# Validation_fitted_df %>% 
-#   mutate(Age_cut = cut_number(Age, 10)) %>% 
-#   filter(equation == "LM") %>% 
-#   group_by(Age_cut) %>%
-#   filter(Creatinine_type == "IDMS") %>%
-#   summarise(table(Centre)[1], table(Centre)[2], table(Centre)[3], n())
-#   
-```
-
-
-```{r Output paper}
-
-Clean_Results_Cetre_CreatType %>%
-  select(-P20) %>% rename("Dose P20" = P20_dose) %>% 
-  write_csv(path = file.path(fig_export_dir, "Results_by_Cetre_CreatType.csv"))
-
-Clean_Results_CreatType %>%
-  select(-P20) %>% rename("Dose P20" = P20_dose) %>% 
-  write_csv(path = file.path(fig_export_dir, "Results_by_CreatType.csv"))
-
-Clean_Results_PatientType_Creattype %>%
-  select(-P20) %>% rename("Dose P20" = P20_dose) %>% 
-  write_csv(path = file.path(fig_export_dir, "Results_by_patient-type.csv"))
-
-Clean_Results_eGFR_Creattype %>%
-  select(-P20) %>% rename("Dose P20" = P20_dose) %>% 
-  write_csv(path = file.path(fig_export_dir, "Results_by_eGFR.csv"))
-
-Clean_Results_BSAadj_eGFR_Creattype %>%
-  select(-P20) %>% rename("Dose P20" = P20_dose) %>% 
-  write_csv(path = file.path(fig_export_dir, "Results_by_BSAadjeGFR.csv"))
-
-Clean_Results_BSAadj_eGFR_Creattype_on_BSAadj_eGFR_scale %>%
-  select(-P20) %>% rename("Dose P20" = P20_dose) %>% 
-  write_csv(path = file.path(fig_export_dir,
-                          "Results_by_BSAadjeGFR_on_BSAadjeGFR_scale.csv"))
-
-
-Clean_Results_Age_Creattype %>%
-  select(-P20) %>% rename("Dose P20" = P20_dose) %>% 
-  write_csv(path = file.path(fig_export_dir, "Results_by_Age.csv"))
-
-Clean_Results_BSA_Creattype %>%
-  select(-P20) %>% rename("Dose P20" = P20_dose) %>% 
-  write_csv(path = file.path(fig_export_dir, "/Results_by_BSA.csv"))
-
-Clean_Results_Sex_Creattype %>%
-  select(-P20) %>% rename("Dose P20" = P20_dose) %>% 
-  write_csv(path = file.path(fig_export_dir, "/Results_by_Sex.csv"))
 ```
 
 
