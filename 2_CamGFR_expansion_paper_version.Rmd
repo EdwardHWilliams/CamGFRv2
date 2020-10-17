@@ -3599,7 +3599,7 @@ p_values_Centre %>%
   filter(equation1 == "CamGFR v2")
 
 
-Íp_values_IDMS_PatientType <- Validation_fitted_df_all %>%
+p_values_IDMS_PatientType <- Validation_fitted_df_all %>%
   mutate(Patient_type = ifelse(Patient_type == "Unknown", "Non-Cancer",
                                Patient_type)) %>%
   filter(Creatinine_type == "IDMS") %>%
@@ -3611,6 +3611,26 @@ p_values_IDMS_PatientType =
          function(i) mutate(p_values_IDMS_PatientType[[i]],
                             PatientType = names[i])) %>%
   do.call(what = rbind, args = .)
+
+
+Table_p_values = createWorkbook()
+
+addWorksheet(Table_p_values, "P-values for all data")
+writeData(Table_p_values, 1, 
+          as.data.frame(p_values),  startCol=1,
+          rowNames=FALSE)
+
+addWorksheet(Table_p_values, "P-values by creatinine type")
+writeData(Table_p_values, 2, 
+          as.data.frame(p_values_CreatType),  startCol=1,
+          rowNames=FALSE)
+
+addWorksheet(Table_p_values, "P-values by centre")
+writeData(Table_p_values, 3, 
+          as.data.frame(p_values_CreatType),  startCol=1,
+          rowNames=FALSE)
+
+saveWorkbook(Table_p_values, file.path(fig_export_dir, "P_values.xlsx"))
 
 
 
