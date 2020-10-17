@@ -2779,7 +2779,11 @@ Validation_fitted_df_all <-  Expansion_data %>%
                            "Refit_CamGFR" = "CamGFR v2", 
                            "CamGFR_v1" = "CamGFR v1", 
                            "Leave_out_1_model" = "Leave-one-out", 
-                           "Spline_model_age_creat"= "Piecewise linear"))
+                           "Spline_model_age_creat"= "Piecewise linear")) %>%
+  mutate(Creatinine_type = ifelse(Creatinine_type == "Non_IDMS", "Non-IDMS",
+                                  "IDMS")) %>%
+  mutate(Patient_type = ifelse(Patient_type == "Unknown", "Non-Cancer",
+                               Patient_type)) 
 
 Validation_fitted_df <- Validation_fitted_df_all %>%
   filter(equation %in% c("CamGFR v2", "CKD-EPI", "MDRD", "LM", "FAS",
@@ -2833,8 +2837,6 @@ Results_Sex_Creattype_all <- Validation_fitted_df_all %>%
 
 # S12
 Results_PatientType_CreatType_all <- Validation_fitted_df_all %>%
-  mutate(Patient_type = ifelse(Patient_type == "Unknown", "Non-Cancer",
-                               Patient_type)) %>%
   group_by(equation, Patient_type, Creatinine_type) %>%
   Statistic_summary_with_doseP20() %>%
   arrange(Creatinine_type, Patient_type, RMSE) 
@@ -2940,11 +2942,6 @@ Clean_Results_eGFR_Creattype  %>%
   write_csv(path = file.path(fig_export_dir, "S12.csv"))
 
 ```
-
-
-
-
-
 
 
 
@@ -3172,7 +3169,7 @@ ggsave(file.path(fig_export_dir, "p.S13_eGFR_Creattype.png"), width = 15, height
 
 
 
-```{r dose_assesment, echo = F, eval = F}
+```{r dose_assesment, echo = F, eval = F, include= F}
 Results_CreatType_dose <- Validation_fitted_df %>%
   group_by(equation, Creatinine_type) %>%
   Statistic_summary_withP20_both()  
@@ -3219,21 +3216,8 @@ df %>%
 ### Model comparison figure 
 
 ```{r Figure_model_comaprison_plot, fig.width=9, fig.height=9}
-Results_plot <- Results_CreatType %>%
-  ungroup() %>%
-  mutate(Creatinine_type = ifelse(Creatinine_type == "Non_IDMS", "Non-IDMS",
-                                  "IDMS")) %>%
-  mutate(equation = factor(equation,
-                           levels = c("Refit_CamGFR", "CamGFR_v1", "CKD-EPI",
-                                      "LM", "FAS", "MDRD"),
-                           labels = c("CamGFR v2", "CamGFR v1", "CKD-EPI",
-                                      "Lund-Malmo",  "FAS", "MDRD"))) 
-# bind_rows(mutate(Results_CreatType, Centre = "All")) %>%
-# filter(Creatinine_type == "IDMS") %>%
-# ungroup() %>%
-# mutate(equ_centre = interaction(Centre, equation))
-
-
+Results_plot <- Results_CreatType 
+  
 p1 <- Results_plot %>% 
   ggplot(aes_string(x = "Creatinine_type", y = "RMSE", group = "equation")) + 
   geom_errorbar(aes_string(ymin = "RMSE_lwr", ymax = "RMSE_upr",
@@ -3286,8 +3270,8 @@ p3 <- Results_plot %>%
   ylab("Residual IQR\n(Precision)") 
 
 p4 <- Results_plot %>% 
-  ggplot(aes_string(x = "Creatinine_type", y = "P20", group = "equation")) + 
-  geom_errorbar(aes_string(ymin = "P20_lwr", ymax = "P20_upr", 
+  ggplot(aes_string(x = "Creatinine_type", y = "P20_dose", group = "equation")) + 
+  geom_errorbar(aes_string(ymin = "P20_dose_lwr", ymax = "P20_dose_upr", 
                            colour = "equation"), 
                 position= position_dodge(width = .5), width = 0.3, size = 1) + 
   geom_point(position= position_dodge(width = .5), size = 2) + #, colour = "black", fill = "white", pch=21) + 
@@ -3322,22 +3306,129 @@ ggsave("Refit_CamGFR_comparison.pdf", plot = plot_creat,
 ```
 
 
-```{r source_comparison_plots, eval = T, include = F}
+```{r Figure_model_comaprison_fucntion, fig.width=9, fig.height=9}
 
-# source("2_Model_comparison_figure.R")
+plot_func <- function(data, facets){
+  p1 <- data %>% 
+     ggplot(aes_string(x = 1, y = "RMSE", group = "equation")) + 
+  geom_errorbar(aes_string(ymin = "RMSE_lwr", ymax = "RMSE_upr",
+                           colour = "equation"), 
+                position= position_dodge(width = .5), width = 0.3, size = 1) + 
+  geom_point(position= position_dodge(width = .5), size = 2) + #, colour = "black", fill = "white", pch=21) + 
+  ggplot_theme() + 
+  theme(legend.position = "none",
+        axis.title.x = element_blank(),
+        text = element_text(size = 14))  +
+  theme(axis.ticks.x = element_blank(), 
+        strip.background = element_blank(),
+        strip.text.x = element_blank(),
+        axis.text.x = element_blank(), 
+        axis.line.x = element_blank()) +
+  scale_color_manual(values =tol6qualitative) +
+  ylab("RMSE\n(Accuracy)") + 
+  facet_wrap(as.formula(paste("~", facets)), nrow = 1) +
+  theme(text = element_text(size = 14))
+  
+  p2 <- data %>% 
+  ggplot(aes_string(x = 1, y = "median", group = "equation")) + 
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  geom_errorbar(aes_string(ymin = "median_lwr", ymax = "median_upr",
+                           colour = "equation"), 
+                position= position_dodge(width = .5), width = 0.3, size = 1) + 
+  geom_point(position= position_dodge(width = .5), size = 2) + #, colour = "black", fill = "white", pch=21) + 
+  ggplot_theme() + 
+  theme(legend.position = "none",
+        axis.title.x = element_blank(),
+        text = element_text(size = 14))  +
+  theme(axis.ticks.x = element_blank(), 
+        axis.text.x = element_blank(), 
+        axis.line.x = element_blank()) +
+  scale_color_manual(values =tol6qualitative) +
+  ylab("Residual median\n(Bias)") + 
+  facet_wrap(as.formula(paste("~", facets)), nrow = 1) +
+  theme(text = element_text(size = 14))
+  
+  p3 <- data %>% 
+  ggplot(aes_string(x = 1, y = "IQR", group = "equation")) + 
+  geom_errorbar(aes_string(ymin = "IQR_lwr", ymax = "IQR_upr",
+                           colour = "equation"), 
+                position= position_dodge(width = .5), width = 0.3, size = 1) + 
+  geom_point(position= position_dodge(width = .5), size = 2) + #, colour = "black", fill = "white", pch=21) + 
+  ggplot_theme() + 
+  theme(legend.position = "none",
+        axis.title.x = element_blank(),
+        text = element_text(size = 14))  +
+  theme(axis.ticks.x = element_blank(), 
+        axis.text.x = element_blank(), 
+         strip.background = element_blank(),
+        strip.text.x = element_blank(),
+       axis.line.x = element_blank()) + 
+  facet_wrap(as.formula(paste("~", facets)), nrow = 1) +
+  scale_color_manual(values =tol6qualitative) +
+  ylab("Residual IQR\n(Precision)") 
+
+  p4 <- data %>% 
+  ggplot(aes_string(x = 1, y = "P20_dose", group = "equation")) + 
+  geom_errorbar(aes_string(ymin = "P20_dose_lwr", ymax = "P20_dose_upr", 
+                           colour = "equation"), 
+                position= position_dodge(width = .5), width = 0.3, size = 1) + 
+  geom_point(position= position_dodge(width = .5), size = 2) + #, colour = "black", fill = "white", pch=21) + 
+  ggplot_theme() + 
+  theme(legend.position = "none",
+        axis.title.x = element_blank())  +
+  scale_color_manual(values =tol6qualitative) +
+  guides(colour = guide_legend(nrow = 2)) +
+  ylab("P20\n(Clinical robustness)") +
+  facet_wrap(as.formula(paste("~", facets)), nrow = 1) +
+  theme(legend.position = "bottom", 
+        strip.background = element_blank(),
+        strip.text.x = element_blank(),
+        axis.title.x = element_blank(), 
+        axis.text.x =  element_blank(), 
+        text = element_text(size = 14), 
+        legend.title = element_blank(), 
+        legend.text = element_text(size = rel(1.2)),
+        legend.box = "vertical",
+        legend.spacing.x = unit(0.5, "cm")) 
+  
+  plot_creat <- 
+  rbind(ggplotGrob(p2), 
+        ggplotGrob(p3), 
+        ggplotGrob(p1), 
+        ggplotGrob(p4), 
+        size = "last")
+}
+
+
+plot_S9 <- plot_func(Results_Age_Creattype, "Creatinine_type + Age_cut")
+plot_S10 <- plot_func(Results_BSA_Creattype, "Creatinine_type + BSA_cut")
+plot_S11 <- plot_func(Results_Sex_Creattype, "Creatinine_type + Sex")
+plot_S12 <- plot_func(Results_PatientType_Creattype, "Creatinine_type + Patient_type")
+plot_S13 <- plot_func(Results_eGFR_Creattype, "Creatinine_type + eGFR_cut")
+
+
+ggsave("plot_S9.pdf", plot = plot_S9, 
+       path = fig_export_dir,
+       width = 4 + 10*4, height = 20/0.7, units = "cm")
+ggsave("plot_S10.pdf", plot = plot_S10, 
+       path = fig_export_dir,
+       width = 4 + 10*4, height = 20/0.7, units = "cm")
+ggsave("plot_S11.pdf", plot = plot_S11, 
+       path = fig_export_dir,
+       width = 4 + 4*4, height = 20/0.7, units = "cm")
+ggsave("plot_S12.pdf", plot = plot_S12, 
+       path = fig_export_dir,
+       width = 4 + 6*4, height = 20/0.7, units = "cm")
+ggsave("plot_S13.pdf", plot = plot_S13, 
+       path = fig_export_dir,
+       width = 4 + 6*4, height = 20/0.7, units = "cm")
+
+plot(plot_S13)
 
 ```
 
 
-```{r PLOT_performance_IDMS_creat_type, fig.width=9, fig.height=9}
 
-# plot(plot_creat_centre)
-# plot(plot_creat_centre_IDMS)
-# plot(plot_creat_Patient_type_IDMS)
-# plot(plot_age)
-# plot(plot_eGFR)
-# plot(plot_creattype_all)
-```
 
 
 
@@ -3363,105 +3454,6 @@ they are for the non-IDMS patients. The decrease in accuracy is driven by the
 increased bias on the model as the precision does not change. Comparatively,
 using the CamGFR model as similar level of accuracy is achieved for both IDMS
 and Non-IDMS patients.
-
-
-
-```{r printing_results_tables, cache = F, echo = F, warning=F, include=T, eval = F}
-Clean_Results_CreatType %>%
-  select(-Creatinine_type, -n) %>%
-  kable(caption = "Results for model comparison") %>%
-  kable_styling(latex_options = c("scale_down", "repeat_header")) %>%
-  kableExtra::group_rows("IDMS creatinine (n = 550)", 1, 5,
-                         latex_gap_space = "0.6em", hline_after = T) %>%
-  kableExtra::group_rows("Non-IDMS creatinine (n = 906)", 6, 10,
-                         latex_gap_space = "0.6em", hline_after = T) 
-
-# Clean_Results_CreatType %>% 
-#   filter(Creatinine_type == "IDMS") %>% 
-#   bind_rows(Clean_Results_Centre %>% 
-#               filter(Creatinine_type == "IDMS")) %>%
-#   select(-n, -Centre, -Creatinine_type) %>%
-#   kable(caption = "Results for model comparison") %>%
-#   kable_styling(latex_options = c("scale_down", "repeat_header")) %>%
-#   group_rows("All (n = 550)", 1, 5, latex_gap_space = "0.6em", hline_after = T) %>%
-#   group_rows("Cambridge (n = 361)", 6, 10, latex_gap_space = "0.6em", hline_after = T) %>%
-#   group_rows("Gothenburg (n = 134)", 11, 15, latex_gap_space = "0.6em", hline_after = T) %>%
-#   group_rows("Mancheter (n = 55)", 16, 20, latex_gap_space = "0.6em", hline_after = T)
-
-Clean_Results_PatientType_Creattype %>%
-  ungroup() %>%
-  select(-Patient_type, -n, -Creatinine_type) %>%
-  kable(caption = "Results for model comparison") %>%
-  kable_styling(latex_options = c("scale_down", "repeat_header")) %>%
-  # group_rows("IDMS creatinine (n = 550)", 1, 15, latex_gap_space = "0.6em", hline_after = T) %>%
-  kableExtra::group_rows(group_label = "Solid tumour (n = 435)",
-                         start_row= 1, end_row = 5, latex_gap_space = "0.6em",
-                         hline_after = T) %>%
-  kableExtra::group_rows("Heamalogical (n = 143)", 6, 10,
-                         latex_gap_space = "0.6em", hline_after = T) %>%
-  kableExtra::group_rows("Non-Cancer (n = 40)", 11, 15,
-                         latex_gap_space = "0.6em", hline_after = T) %>%
-  # group_rows("Non-IDMS creatinine (n = 906)", 16, 30, latex_gap_space = "0.6em", hline_after = T) %>%
-  kableExtra::group_rows("Solid tumour (n = 885)", 16, 20,
-                         latex_gap_space = "0.6em", hline_after = T) %>%
-  kableExtra::group_rows("Heamalogical (n = 26)", 21, 25,
-                         latex_gap_space = "0.6em", hline_after = T) %>%
-  kableExtra::group_rows("Non-Cancer (n = 10)", 26, 30,
-                         latex_gap_space = "0.6em", hline_after = T)
-
-Clean_Results_eGFR_Creattype %>%
-  select(-Creatinine_type, -eGFR_cut) %>%
-  kable(caption = "Results split by eGFR and creatinine type, arranged by RMSE") %>%
-  kable_styling(latex_options = c("scale_down", "repeat_header")) %>%
-  kableExtra::group_rows("IDMS creatinine (n = 550)", 1, 24,
-                         latex_gap_space = "0.6em", hline_after = T) %>%
-  kableExtra::group_rows("eGFR <= 60", 1, 6, latex_gap_space = "0.6em",
-                         hline_after = T) %>%
-  kableExtra::group_rows("60 < eGFR <= 90", 7, 12, latex_gap_space = "0.6em",
-                         hline_after = T) %>%
-  kableExtra::group_rows("90 < eGFR <= 120", 13, 18, latex_gap_space = "0.6em",
-                         hline_after = T) %>%
-  kableExtra::group_rows("eGFR > 120", 19, 24, latex_gap_space = "0.6em",
-                         hline_after = T) %>%
-  kableExtra::group_rows("Non-IDMS creatinine (n = 906)", 25, 48,
-                         latex_gap_space = "0.6em", hline_after = T) %>%
-  kableExtra::group_rows("eGFR <= 60", 25, 30, latex_gap_space = "0.6em",
-                         hline_after = T) %>%
-  kableExtra::group_rows("60 < eGFR <= 90", 31, 36, latex_gap_space = "0.6em",
-                         hline_after = T) %>%
-  kableExtra::group_rows("90 < eGFR <= 120", 37, 42, latex_gap_space = "0.6em",
-                         hline_after = T) %>%
-  kableExtra::group_rows("eGFR > 120", 43, 48, latex_gap_space = "0.6em",
-                         hline_after = T) 
-```
-
-
-```{r Write_table_to_excel_5, echo = F, eval = F, include = F}
-
-T2 = createWorkbook()
-
-createSheet(T2, "IDMS data comparison")
-writeData(as.data.frame(Table.3_Results_CreatType),  startCol=1, rowNames=FALSE)
-saveWorkbook(T2, file.path(fig_export_dir, "Table_2.xlsx"))
-
-
-ST5 = createWorkbook()
-
-createSheet(ST5, "Results for all data")
-writeData(as.data.frame(Table.3_Clean_Results_IDMS_data),  startCol=1,
-          rowNames=FALSE)
-
-createSheet(ST5, "Results split by centre")
-writeData(as.data.frame(Table.3_Clean_Results_Centre),  startCol=1,
-          rowNames=FALSE)
-
-createSheet(ST5, "Results split by diagnosis")
-writeData(as.data.frame(Table.3_Clean_Results_Diagnosis),  startCol=1,
-          rowNames=FALSE)
-
-saveWorkbook(ST5, file.path(fig_export_dir, "Supplemental_table_5.xlsx"))
-```
-
 
 
 
