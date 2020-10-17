@@ -2760,17 +2760,16 @@ Validation_fitted_df_all <-  Expansion_data %>%
   rename(`CKD-EPI` = CKD_adj, LM = LM_adj, FAS = FAS_adj) %>%
   gather(key = equation, value = fitted,
          Refit_CamGFR:Spline_model_age_creat, `CKD-EPI`, MDRD, LM, FAS) %>%
-  mutate(resid = GFR - fitted)
-
+  mutate(resid = GFR - fitted) %>%
+  mutate(equation = recode(equation, 
+                           "Refit_CamGFR" = "CamGFR v2", 
+                           "CamGFR_v1" = "CamGFR v1", 
+                           "Leave_out_1_model" = "Leave-one-out", 
+                           "Spline_model_age_creat"= "Piecewise linear"))
 
 Validation_fitted_df <- Validation_fitted_df_all %>%
-  filter(equation %in% c("Refit_CamGFR", "CKD-EPI", "MDRD", "LM", "FAS",
-                         "CamGFR_v1", "Refit_CKD")) %>%
-  mutate(equation = factor(equation,
-                           levels = c("Refit_CamGFR", "CamGFR_v1",
-                                      "LM","CKD-EPI", "FAS", "MDRD"),
-                           labels = c("CamGFR v2", "CamGFR v1", "LM", "CKD-EPI", 
-                                      "FAS", "MDRD")))
+  filter(equation %in% c("CamGFR v2", "CKD-EPI", "MDRD", "LM", "FAS",
+                         "CamGFR v1")) 
 
 Results_all <- Validation_fitted_df_all %>%
   group_by(equation) %>%
@@ -2793,8 +2792,8 @@ Results_CreatType_all <- Validation_fitted_df_all %>%
   arrange(Creatinine_type, RMSE)
 
 Results_CreatType <- Results_CreatType_all %>%
-  filter(equation %in% c("Refit_CamGFR", "CamGFR_v1", "LM", "CKD-EPI",
-                         "MDRD", "FAS"))
+  filter(equation %in% c("CamGFR v2", "CKD-EPI", "MDRD", "LM", "FAS",
+                         "CamGFR v1")) 
 
 Results_Centre_CreatType_all <- Validation_fitted_df_all %>%
   group_by(equation, Centre, Creatinine_type) %>%
@@ -2802,8 +2801,8 @@ Results_Centre_CreatType_all <- Validation_fitted_df_all %>%
   # select(-P20_dose, -P20_dose_lwr, -P20_dose_upr) %>%
   arrange(Centre, Creatinine_type, RMSE)
 Results_Centre_CreatType <- Results_Centre_CreatType_all %>%
-  filter(equation %in% c("Refit_CamGFR",  "CamGFR_v1", "LM", "CKD-EPI",
-                         "MDRD", "FAS"))
+  filter(equation %in% c("CamGFR v2", "CKD-EPI", "MDRD", "LM", "FAS",
+                         "CamGFR v1")) 
 # 
 # # 
 Results_PatientType_all <- Validation_fitted_df_all %>%
@@ -2845,6 +2844,8 @@ Results_Diagnosis_CreatType_all <- Validation_fitted_df_all %>%
 #   kable(caption = "Results of the 5 candidate models along with CKD-EPI and MDRD models") %>% 
 #   kable_styling(latex_options="scale_down")
 ```
+
+
 
 
 ```{r Supplemental_TablesToFigures}
@@ -3301,95 +3302,8 @@ Clean_Results_Sex_Creattype %>%
 ```
 
 
-```{r Output_thesis}
-Results_all %>%
-  filter(equation %in%
-           c("Spline_model_age_creat", "Leave_out_1_model", "Refit_CamGFR")) %>% 
-  select(-n) %>%
-  Clean_results() %>%
-  kable(format = "latex")
 
-p_values <- Validation_fitted_df_all %>%
-  filter(equation %in%
-           c("Spline_model_age_creat", "Leave_out_1_model", "Refit_CamGFR")) %>% 
-  Bootstrap_all_stats_all_equation()
-p_values
-
-Results
-Results_CreatType
-
-
-p_values_CreatType <- Validation_fitted_df %>%
-  split(., .$Creatinine_type) %>%
-  lapply(. , Bootstrap_all_stats_all_equation)
-names = names(p_values_CreatType)
-p_values_CreatType = 
-  lapply(1:length(p_values_CreatType), 
-         function(i) mutate(p_values_CreatType[[i]], Creatinine_type = names[i])) %>%
-  do.call(what = rbind, args = .)
-
-
-```
-
-
-```{r bootstrap_p_values, echo = F, eval = F, cache=T}
-
-p_values_CreatType <- Validation_fitted_df_all %>%
-  split(., .$Creatinine_type) %>%
-  lapply(. , Bootstrap_all_stats_all_equation)
-names = names(p_values_CreatType)
-p_values_CreatType = 
-  lapply(1:length(p_values_CreatType), 
-         function(i) mutate(p_values_CreatType[[i]],
-                            Creatinine_type = names[i])) %>%
-  do.call(what = rbind, args = .)
-
-p_values_IDMS_PatientType <- Validation_fitted_df %>%
-  mutate(Patient_type = ifelse(Patient_type == "Unknown", "Non-Cancer",
-                               Patient_type)) %>%
-  filter(Creatinine_type == "IDMS") %>%
-  split(., .$Patient_type) %>%
-  lapply(. , Bootstrap_all_stats_all_equation)
-names = names(p_values_IDMS_PatientType)
-p_values_IDMS_PatientType = 
-  lapply(1:length(p_values_CreatType), 
-         function(i) mutate(p_values_CreatType[[i]],
-                            Creatinine_type = names[i])) %>%
-  do.call(what = rbind, args = .)
-
-```
-
-```{r p_values_eGFR, echo = F, eval = F, cache=T}
-p_values_IDMS_eGFR <- Validation_fitted_df %>% 
-  filter(Creatinine_type == "IDMS") %>%
-  split(., .$eGFR_cut) %>%
-  lapply(. , Bootstrap_all_stats_all_equation)
-
-
-
-a <- Validation_fitted_df %>%
-  mutate(eGFR_cut = cut(fitted, breaks =  c(0, 60, 90, 260))) %>%
-  filter(Creatinine_type == "IDMS") %>%
-  select(eGFR_cut, resid, fitted, GFR, equation) %>%
-  split(., .$eGFR_cut) 
-
-equations = a[[1]]$equation %>% unique()
-
-for(i in 1:3){
-  for(func in list(RMSE_resid, median, IQR)){
-    Bootstrap_test(x1 = filter(a[[i]], equation == equations[1]) %>% pull(resid),
-                   x2 = filter(a[[i]], equation == equations[4]) %>% pull(resid), 
-                   func = func, 
-                   return_all = T) %>%
-      print()
-  }
-}
-
-
-
-undebug(Bootstrap_test)
-```
-
+### Model comparison figure 
 
 ```{r Figure_model_comaprison_plot, fig.width=9, fig.height=9}
 Results_plot <- Results_CreatType %>%
@@ -3650,6 +3564,63 @@ Validation_fitted_df %>%
 ```
 
 
+### Model comparison p-values
+
+
+```{r p_values_new, echo = F, eval = F, cache=T}
+
+p_values <- Validation_fitted_df_all %>% 
+  Squared_error_permutation_test_all_equations()
+
+
+p_values_CreatType <- Validation_fitted_df_all %>%
+  split(., .$Creatinine_type) %>%
+  lapply(. , Squared_error_permutation_test_all_equations)
+names = names(p_values_CreatType)
+p_values_CreatType = 
+  lapply(1:length(p_values_CreatType), 
+         function(i) mutate(p_values_CreatType[[i]],
+                            Creatinine_type = names[i])) %>%
+  do.call(what = rbind, args = .)
+p_values_CreatType %>% 
+  filter(equation1 == "CamGFR v2")
+
+
+p_values_Centre <- Validation_fitted_df_all %>%
+  split(., .$Centre) %>%
+  lapply(. , Squared_error_permutation_test_all_equations)
+names = names(p_values_Centre)
+p_values_Centre = 
+  lapply(1:length(p_values_Centre), 
+         function(i) mutate(p_values_Centre[[i]],
+                            Creatinine_type = names[i])) %>%
+  do.call(what = rbind, args = .)
+p_values_Centre %>% 
+  filter(equation1 == "CamGFR v2")
+
+
+Íp_values_IDMS_PatientType <- Validation_fitted_df_all %>%
+  mutate(Patient_type = ifelse(Patient_type == "Unknown", "Non-Cancer",
+                               Patient_type)) %>%
+  filter(Creatinine_type == "IDMS") %>%
+  split(., .$Patient_type) %>%
+  lapply(. , Squared_error_permutation_test_all_equations)
+names = names(p_values_IDMS_PatientType)
+p_values_IDMS_PatientType = 
+  lapply(1:length(p_values_IDMS_PatientType), 
+         function(i) mutate(p_values_IDMS_PatientType[[i]],
+                            PatientType = names[i])) %>%
+  do.call(what = rbind, args = .)
+
+
+
+```
+
+
+## Final model
+
+
+
 ```{r Final_model, eval = F, echo = F }
 CamGFR_final <- lm(model_formula_interaction, data = Expansion_data)
 Refit_CamGFR <- lm(model_formula_interaction,
@@ -3658,6 +3629,10 @@ saveRDS(CamGFR_final, file = "CamGFR_reffitted_all.rds")
 saveRDS(Refit_CamGFR, file = "CamGFR_reffitted.rds")
 
 ```
+
+
+
+
 
 
 ## Model assesment
@@ -3914,6 +3889,8 @@ p
 ```{r compare_models_using_JNCI_paper_data, eval = T, echo = F}
 
 JNCI_fitted_values <- New_nonIDMS_data_JNCI %>%
+  mutate(log_Creat_IDMS = log(Creat)*(Creatinine_type == "IDMS"), 
+         log_Creat_nonIDMS = log(Creat)*(Creatinine_type == "Non_IDMS")) %>%
   filter(!(Centre %in% c("Cambridge", "Manchester"))) %>%
   mutate(log_Creat = log(Creat)) %>%
   mutate(Creatinine_type = "Non_IDMS") %>%
@@ -3928,16 +3905,20 @@ JNCI_fitted_values <- New_nonIDMS_data_JNCI %>%
   bind_cols(GFR_fitted_values_eth(.)) %>%
   mutate(Refit_CamGFR = predict(Refit_CamGFR, newdata = .)^2) %>%
   mutate(CamGFR_v1 = predict(Addenbrooks_sqrt_model, newdata = .)^2) %>%
+  mutate(Leave_out_1_model = predict(Leave_out_one_model, newdata = .)^2) %>%
+  mutate(Spline_model_age_creat = predict(Spline_model_age_creat, newdata = .)^2) %>%
   mutate(MDRD = ifelse(Creatinine_type == "IDMS", MDRD_adj_IDMS, MDRD_adj)) %>% 
   rename(`CKD-EPI` = CKD_adj, LM = LM_adj, FAS = FAS_adj) %>%
   gather(key = equation, value = fitted, WJ:MDRD) %>%
   mutate(resid = GFR - fitted) %>%
   filter(equation %in% c("Refit_CamGFR", "CKD-EPI", "MDRD", "LM", "FAS",
-                         "CamGFR_v1")) %>%
+                         "CamGFR_v1", "Leave_out_1_model", "Spline_model_age_creat")) %>%
   mutate(equation = factor(equation, levels = c("Refit_CamGFR", "CamGFR_v1", 
-                                                "LM","CKD-EPI", "FAS", "MDRD"),
+                                                "LM","CKD-EPI", "FAS", "MDRD", 
+                                                "Leave_out_1_model", "Spline_model_age_creat"),
                            labels = c("CamGFR v2", "CamGFR v1", "LM", "CKD-EPI", 
-                                      "FAS", "MDRD"))) 
+                                      "FAS", "MDRD", 
+                                      "Leave-out-1", "Spline"))) 
 
 
 JNCI_fitted_values %>%
@@ -3948,7 +3929,7 @@ JNCI_fitted_values %>%
   Clean_results() %>%
   select(-P20) %>%
   rename("Dose P20" = P20_dose) %>% 
-  write_csv(path = file.path(fig_export_dir, "Results_JNCI_data_all.csv"))
+  write_csv(file = file.path(fig_export_dir, "Results_JNCI_data_all.csv"))
 
 JNCI_fitted_values %>%
   group_by(equation, Centre) %>%
@@ -3958,7 +3939,7 @@ JNCI_fitted_values %>%
   Clean_results() %>%
   select(-P20) %>%
   rename("Dose P20" = P20_dose) %>% 
-  write_csv(path = file.path(fig_export_dir, "Results_JNCI_data_by_centre.csv"))
+  write_csv(file = file.path(fig_export_dir, "Results_JNCI_data_by_centre.csv"))
 
 
 ```
