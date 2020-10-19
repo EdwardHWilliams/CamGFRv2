@@ -2127,8 +2127,8 @@ ggsave(file.path(fig_export_dir, "Variable_scatter_centre_plot.pdf"),
 
 We then analysed whether there was a difference in the non-creatinine between
 the IDMS and non-IDMS patients. In Figure \ref{fig:gfr_variable_IDMS} we
-reporduce the scatter plots for the continous variables for Figure
-\ref{fig:gfr_variable_sex}, however, this thime the points coloured by
+reproduce the scatter plots for the continuous variables for Figure
+\ref{fig:gfr_variable_sex}, however, this time the points coloured by
 creatinine type. The plot shows no difference between the two patient groups for
 these variables.
 
@@ -3253,6 +3253,135 @@ Results_eGFR_Creattype_all <- Validation_fitted_df_all %>%
   ungroup() 
 
 
+```
+
+# Repeat measurements for patients
+```{r}
+# difference in sqrt(GFR) between samples of same patient
+md_repeat_samples <- Expansion_data %>%
+  group_by(PatientID, Creatinine_type) %>%
+  mutate(repeat_samples = n()) %>%
+  filter(repeat_samples > 1) %>%
+  do(data.frame(t(combn(.$sqrt_GFR, 2)))) %>%
+  mutate(pdiff=abs(X2-X1)) %>%
+  summarise(mean_difference = mean(pdiff),
+            median_difference = median(pdiff),
+            type = "Repeat samples",
+            .groups="drop")
+
+# Find and format cut points across all patients
+cutpoints <- Expansion_data %>%
+  mutate(Age_cut = cut_number(Age, 5, dig.lab=4)) %>% 
+  mutate(BSA_cut = cut_number(BSA, 5, dig.lab=6)) %>%
+  select(Age_cut, BSA_cut) %>%
+  summarise(age_lower = as.numeric(gsub("[\\[\\(](.*),.*", "\\1", levels(Age_cut))),
+            bsa_lower = as.numeric(gsub("[\\[\\(](.*),.*", "\\1", levels(BSA_cut))),
+            age_higher = as.numeric(gsub(".*,(.*)\\]", "\\1", levels(Age_cut))),
+            bsa_higher = as.numeric(gsub(".*,(.*)\\]", "\\1", levels(BSA_cut)))
+  ) %>%
+  pivot_longer(everything(),names_to = "type", values_to ="cuts") %>%
+  separate(type, into = c("covariate", "interval")) %>%
+  group_by(covariate) %>%
+  summarise(cuts = unique(cuts)) %>%
+  mutate(dummy = 1:n()) %>%
+  pivot_wider(names_from=covariate, values_from=cuts) %>%
+  select(-dummy)
+
+# Stratify patients without repeat measures
+stratified_samples <- Expansion_data %>%
+  group_by(PatientID) %>%
+  mutate(repeat_samples = n()) %>%
+  filter(repeat_samples == 1) %>%
+  ungroup() %>%
+  mutate(Age_cut = cut(Age, cutpoints$age, include.lowest =TRUE)) %>% 
+  mutate(BSA_cut = cut(BSA, cutpoints$bsa, include.lowest =TRUE)) %>% 
+  group_by(Age_cut, BSA_cut, Sex, Patient_type, Creatinine_type) %>%
+  unite("group_id", Age_cut, BSA_cut, Sex, Patient_type, Creatinine_type,
+        remove=FALSE)
+
+# difference in sqrt(GFR) between samples in same stratification group
+# (no repeat measures)
+md_stratified_samples <- stratified_samples %>%
+  mutate(group_samples = n()) %>%
+  filter(group_samples > 1) %>%
+  do(data.frame(t(combn(.$sqrt_GFR, 2)))) %>%
+  mutate(pdiff=abs(X2-X1)) %>%
+  summarise(mean_difference = mean(pdiff),
+            median_difference = median(pdiff),
+            group_size = n(),
+            type = "Stratified samples",
+            .groups="drop")
+
+# Stratify repeat samples by same intervals/type/measures
+repeat_samples_stratified <- Expansion_data %>%
+  group_by(PatientID, Creatinine_type) %>%
+  mutate(repeat_samples = n()) %>%
+  filter(repeat_samples > 1) %>%
+  mutate(Age_cut = cut(Age, cutpoints$age, include.lowest =TRUE)) %>% 
+  mutate(BSA_cut = cut(BSA, cutpoints$bsa, include.lowest =TRUE)) %>%
+  group_by(Age_cut, BSA_cut, Sex, Patient_type, Creatinine_type) %>%
+  unite("group_id", Age_cut, BSA_cut, Sex, Patient_type, Creatinine_type,
+        remove=FALSE)
+
+# Calculate distances between patients with repeat measures and other samples in
+# same stratify group
+## match groups
+repeat_samples_stratified_list <- repeat_samples_stratified %>%
+  group_split()
+names(repeat_samples_stratified_list) <-
+  unique(repeat_samples_stratified$group_id)
+  
+stratified_samples_list <- stratified_samples  %>%
+  group_split()
+names(stratified_samples_list) <- unique(stratified_samples$group_id)
+
+## make sure groups match up
+repeat_samples_stratified_list <- repeat_samples_stratified_list[
+  names(repeat_samples_stratified_list) %in% names(stratified_samples_list)]
+stratified_samples_list <- stratified_samples_list[
+  names(stratified_samples_list) %in% names(repeat_samples_stratified_list)]
+stratified_samples_list <- stratified_samples_list[
+  match(names(repeat_samples_stratified_list),names(stratified_samples_list))]
+
+testthat::expect_equal(names(repeat_samples_stratified_list),
+                       names(stratified_samples_list))
+
+md_repeat_to_stratified <- lapply(seq_along(stratified_samples_list), function(group_index) {
+  rs <- repeat_samples_stratified_list[[group_index]]
+  ss <- stratified_samples_list[[group_index]]
+  mean_per_rs <- sapply(rs$sqrt_GFR, function(x) mean(abs(x - ss$sqrt_GFR)))
+  median_per_rs <- sapply(rs$sqrt_GFR, function(x) median(abs(x - ss$sqrt_GFR)))
+  tibble(PatientID = rs$PatientID,
+         Creatinine_type = rs$Creatinine_type,
+         mean_difference = mean_per_rs,
+         median_difference = median_per_rs,
+         type = "Repeat to stratified")
+}) %>%
+  bind_rows
+
+md <- bind_rows(md_repeat_samples, md_stratified_samples, md_repeat_to_stratified)
+
+p_mean_diff <- ggplot(data=md) +
+  geom_density(aes(x=mean_difference, color=type), show.legend = FALSE) +
+  scale_color_brewer(type="qual") +
+  labs(x="Mean difference sqrt(GFR)",
+       y="Density",
+       color="Comparsion") +
+  ggplot_theme()
+p_median_diff <- ggplot(data=md) +
+  geom_density(aes(x=median_difference, color=type)) +
+  scale_color_brewer(type="qual") +
+  labs(x="Median difference sqrt(GFR)",
+       y="Density",
+       color="Comparsion") +
+  ggplot_theme() +
+  theme(legend.position = "right",
+        legend.direction = "vertical")
+legend_stratified <- get_legend(p_median_diff)
+plots_stratified <- plot_grid(p_mean_diff,
+                             p_median_diff + theme(legend.position = "none"),
+                             nrow=2)
+plot_grid(plots_stratified, legend_stratified, rel_widths = c(5,2))
 ```
 
 
