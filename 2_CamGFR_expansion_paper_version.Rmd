@@ -175,14 +175,11 @@ Expansion_data_fit <- Expansion_data %>%
   filter(fit_index == 1) %>%
   mutate(Creatinine_type = factor(Creatinine_type, levels = c("Non_IDMS", "IDMS")))
 
+# correcting paient_type 
+Expansion_data <- Expansion_data %>%
+  mutate(Patient_type = ifelse(Patient_type == "Unknown", "Non-Cancer",
+                               Patient_type))
 
-# Expansion_data %>% select(Centre, Creatinine_type)
-# 
-# Expansion_data %>% filter(Centre == "Cambridge") %>%
-#   pull(Creatinine_method) %>% table()
-# Expansion_data %>% filter(Centre == "Cambridge") %>%
-#   filter(Creatinine_type == "IDMS") %>%
-#   t.test(Creat ~ Creatinine_method, data = .)
 ```
 
 
@@ -190,130 +187,80 @@ Expansion_data_fit <- Expansion_data %>%
 The data used in this manuscript are summaries in Tables \ref{tab:summary_centr}
 and \ref{tab:summary_categorical}.
 
-```{r data_characteristic_tables, cache = T, echo = F, warning=F}
+```{r Patient_numbers_by_centre, cache = T, echo = F, warning=F}
 Samples_per_centre_all <- Expansion_data %>%
   group_by(Centre) %>%
   summarise("Total samples" = n(),
             "Total patients" = n_distinct(PatientID),
+             "Female" = sum(Sex == "F"),
             "IDMS creatinine" = sum(Creatinine_type == "IDMS"),
             "Enzymatic creatinine" = sum(Creatinine_method == "Enzymatic"),
             "Solid tumour" = sum(Patient_type == "Cancer"),
             "Hematology" = sum(Patient_type == "Haem"),
-            "Non-cancer" = sum(!Patient_type %in% c("Haem", "Cancer")),
-            "Female" = sum(Sex == "F"),
-            "Repeat patients" = sum(GFR_index > 1)) %>%
+            "Non-cancer" = sum(!Patient_type %in% c("Haem", "Cancer"))
+            # "Repeat patients" = sum(GFR_index > 1)
+            ) %>%
             #"Race - Black" = sum(Ethnicity == "Black", na.rm = T)) %>%
   rbind(c("Total", sum(.$`Total samples`),
           sum(.$`Total patients`),
+          sum(.$Female),
           sum(.$`IDMS creatinine`),
           sum(.$`Enzymatic creatinine`), 
           sum(.$`Solid tumour`),
           sum(.$Hematology),
-          sum(.$`Non-cancer`),
-          sum(.$Female),
-          sum(.$`Repeat patients`))
+          sum(.$`Non-cancer`)
+          # sum(.$`Repeat patients`)
+          )
           #sum(.$`Race - Black`))
         )
-
-Expansion_data %>% 
-  filter(GFR_index == 1) %>%
-  group_by(Patient_type) %>%
-  summarise(n = n()) %>%
-  ungroup() %>%
-  mutate(per = n/sum(n))
-
-Centre_diagnosis_summary <- Expansion_data %>%
-  group_by(Centre, Diagnosis) %>%
-  summarise(n = n()) %>% 
-  spread(key = Centre, value = n) %>%
-  replace(., is.na(.), 0) %>%
-  mutate(Total = rowSums(select(., -Diagnosis))) %>%
-  arrange(-Total)
-
-Centre_diagnosis_summary_2 <- Expansion_data %>%
-  group_by(Diagnosis) %>%
-  summarise(n = n(), p = length(unique(PatientID))) %>%
-  arrange(-n)
-
-
-Summary_variables <- Expansion_data %>%
-  mutate(Creat_IDMS = ifelse(Creatinine_type == "IDMS", Creat, NA)) %>%
-  mutate(Creat = ifelse(Creatinine_type == "IDMS", NA, Creat)) %>%
-  mutate("Creatinine (μmol/L)" = Creat*88.4,
-         "Creatinine IDMS (μmol/L)" = Creat_IDMS*88.4) %>%
-  select("GFR [ml/min]" = GFR, "Creatinine [mg/dL]" = Creat,
-         "Creatinine IDMS [mg/dL]" = Creat_IDMS,
-         "Age [years]" = Age, "Height [cm]" = Ht, "Weight [kg]" = Wt, 
-         "BSA [m\u00B2]" = BSA)%>%
-  dplyr_summary(full_name = T) %>%
-  as.data.frame() %>%
-  select(5, 1, 3, 4, 2, 6, 7)
-
-Summary_variables_by_centre <- Expansion_data %>%
-  mutate(Creat_IDMS = ifelse(Creatinine_type == "IDMS", Creat, NA)) %>%
-  mutate(Creat = ifelse(Creatinine_type == "IDMS", NA, Creat)) %>%
-  select("GFR [ml/min]" = GFR,
-         "Creatinine [mg/dL]" = Creat,
-         "Creatinine IDMS [mg/dL]" = Creat_IDMS,
-         "Age [years]" = Age,
-         "Height [cm]" = Ht,
-         "Weight [kg]" = Wt, 
-         "BSA [m\u00B2]" = BSA,
-         Centre) %>%
-  split(f = .$Centre) %>%
-  lapply(function(x) select(x, -Centre)) %>%
-  lapply(FUN = dplyr_summary) %>%
-  lapply(FUN = function(df){
-    df %>% as.data.frame() %>% select(5, 3, 4, 1, 7, 6, 2)
-  }) 
-
-# STable.1.2_variable_summary_by_centre %>%
-#  lapply(FUN = function(df){
-#    df %>% format(digits = 2, drop0trailing = TRUE) %>% t() %>% kable()
-#  })
-Variable_summary_by_patient_type <- Expansion_data %>%
-  mutate(Creat_IDMS = ifelse(Creatinine_type == "IDMS", Creat, NA)) %>%
-  mutate(Creat = ifelse(Creatinine_type == "IDMS", NA, Creat)) %>%
-  mutate("Creatinine (μmol/L)" = Creat*88.4,
-         "Creatinine IDMS (μmol/L)" = Creat_IDMS*88.4) %>%
-  select("GFR (ml/min)" = GFR,
-         "Creatinine (μmol/L)",
-         "Creatinine (mg/dL)" = Creat,
-         "Creatinine IDMS (μmol/L)",
-         "Creatinine IDMS (mg/dL)" = Creat_IDMS,
-         "Age (years)" = Age,
-         "Height (cm)" = Ht,
-         "Weight (kg)" = Wt,
-         "BSA (m2)" = BSA, Patient_type) %>%
-  mutate(Patient_type = ifelse(Patient_type %in% c("Misc","Donor"),
-                               "Non_cancer", Patient_type)) %>%
-  split(f = .$Patient_type) %>%
-  lapply(function(x) select(x, -Patient_type)) %>%
-  lapply(FUN = dplyr_summary) %>%
-  lapply(FUN = function(df){
-    df %>% t() %>% as.data.frame() %>% na.omit() %>% t()
-  })
-# STable.1.3_variable_summary_by_patient_type %>%
-#  lapply(FUN = function(df){
-#    df %>% format(digits = 2, drop0trailing = TRUE) %>% t() %>% kable()
-#  })
+Samples_per_centre_all
+write_excel_csv(Samples_per_centre_all,
+                file = file.path(fig_export_dir, "Table_S1_rough.csv"))
 ```
 
 
+```{r Patient_numbers_by_ethnicity, cache = T, echo = F, warning=F}
+Samples_by_ethnicity <- Expansion_data %>%
+  select(Creatinine_type, Ethnicity) %>%
+  table() %>% 
+  as.data.frame() %>%
+  mutate(Creatinine_type = ifelse(Creatinine_type == "Non_IDMS", "non-IDMS", "IDMS")) %>%
+  pivot_wider(values_from = Freq, names_from = Ethnicity)
+Samples_by_ethnicity
+write_excel_csv(Samples_by_ethnicity,
+                file = file.path(fig_export_dir, "Table_S2_rough.csv"))
+```
+
+
+```{r Patient_numbers_by_diagnosis, cache = T, echo = F, warning=F}
+Diagnosis_summary <- Expansion_data %>%
+  group_by(Diagnosis) %>%
+  summarise(`Number of samples` = n(), `Number of patients` = length(unique(PatientID))) %>%
+  arrange(-`Number of samples`)
+Diagnosis_summary
+write_excel_csv(Samples_by_ethnicity,
+                file = file.path(fig_export_dir, "Table_S3_rough.csv"))
+
+```
+
+
+```{r Patient_numbers_by_repeats, cache = T, echo = F, warning=F}
+Repeat_GFR_summary <- Expansion_data %>%
+  group_by(PatientID) %>%
+  summarise(n = n()) %>%
+  pull(n) %>% 
+  table() %>% 
+  as.data.frame() %>% 
+  pivot_wider(values_from = "Freq", names_from = ".")
+Repeat_GFR_summary
+write_excel_csv(Repeat_GFR_summary,
+                file = file.path(fig_export_dir, "Table_S4_rough.csv"))
+
+```
 
 ```{r new_summary table, echo = F, warning=F}
-Expansion_data %>%
-  filter(Centre == "Gothenburg") %>%
-  select("GFR [ml/min]" = GFR, "Creatinine [mg/dL]" = Creat,
-         "Age [years]" = Age, "Height [cm]" = Ht, "Weight [kg]" = Wt, 
-         "BSA [m\u00B2]" = BSA, 
-         Centre) %>%
-  gather(key = variable, value = value, -Centre) %>%
-  group_by(Centre, variable) %>%
-  summarise(Median.IDMS = median(value), 
-            IQR.IDMS = IQR(value)) -> a
 
-Summary_variables_by_centre_new <- Expansion_data %>%
+Summary_variables_by_centre <- Expansion_data %>%
   filter(Centre != "Gothenburg") %>%
   select("GFR [ml/min]" = GFR,
          "Creatinine [mg/dL]" = Creat,
@@ -336,68 +283,15 @@ Summary_variables_by_centre_new <- Expansion_data %>%
   mutate_if(is.numeric, signif, 3)
 
 
-Summary_variables_by_centre_new = Summary_variables_by_centre_new %>% 
-  ungroup() %>%
-  mutate(`Adj p-value` = p.adjust(`p-value`, method = "bonferroni"))
+Summary_variables_by_centre = Summary_variables_by_centre %>% 
+  ungroup() #%>%
+  # mutate(`Adj p-value` = p.adjust(`p-value`, method = "bonferroni"))
 
-Summary_variables_by_centre_new$`Adj p-value`
-write_excel_csv(Summary_variables_by_centre_new,
+write_excel_csv(Summary_variables_by_centre,
                 path = file.path(fig_export_dir, "Table1_rough.csv"))
 
-write_excel_csv(Samples_per_centre_all,
-                path = file.path(fig_export_dir, "Table1_b_rough.csv"))
 ```
 
-
-```{r printing_tables, cache = F, echo = F, warning=F}
-# Samples_per_centre_all %>%
-#   kable(caption = "Number of patients in different catogorical groups for each of the different datasets.")
-# 
-# 
-# kable(Centre_diagnosis_summary, caption = "Number of patient from each centre with a given diagnosis")
-
-table <- c(list("All data" = Summary_variables),
-           Summary_variables_by_centre) %>% 
-  lapply(FUN = function(df){
-    df %>%
-      format(digits = 2, drop0trailing = TRUE) %>%
-      t()
-    }) %>%
-  do.call("rbind", .) 
-colnames(table) <- c("Mean", "SD", "Minimim", "Q1", "Median", "Q3", "Maximum")
-table <- table[-16,] 
-
-table %>%  
-  kable("latex", align = "r", longtable = T, booktabs = T, 
-        caption = "\\label{tab:summary_centr}Summary statistics (mean, standard deviation, minimum, lower quartile, median, upper quartile and maximum) for GFR, creatinine (non-IDMS), creatinine (IDMS), age, height, weight and body surface area. Statistics are shown for all data and from data from each centre separately.") %>%
-  kable_styling(latex_options = c("repeat_header")) %>%
-  kableExtra::group_rows("All data", 1, 7, latex_gap_space = "0.6em",
-                         hline_after = T) %>%
-  kableExtra::group_rows("Cambridge", 8, 14, latex_gap_space = "0.6em",
-                         hline_after = T) %>%
-  kableExtra::group_rows("Gothenburg", 15, 20, latex_gap_space = "0.6em",
-                         hline_after = T) %>%
-  kableExtra::group_rows("Manchester", 21, 27, latex_gap_space = "0.6em",
-                         hline_after = T) 
-
-Samples_per_centre_all %>%
-  mutate_at(.vars = vars(-1), .funs = list(~as.numeric(.))) %>%
-  as.data.frame() %>%
-  column_to_rownames("Centre") %>%
-  t() %>% 
-  as.data.frame() %>%
-  rownames_to_column(" ") %>%
-  as_tibble() %>%
-  bind_rows(Centre_diagnosis_summary %>% rename(" " = Diagnosis) %>%
-              as.data.frame()) %>%
-  kable("latex", align = "r", longtable = T, booktabs = T, 
-        caption = "\\label{tab:summary_categorical}Number of patients in different catogorical groups for each of the different datasets.") %>%
-  kable_styling(latex_options = c("repeat_header")) %>%
-  kableExtra::group_rows("General", 1, 9, latex_gap_space = "0.6em",
-                         hline_after = T) %>%
-  kableExtra::group_rows("Diagnosis", 10, 34, latex_gap_space = "0.6em",
-                         hline_after = T)  
-```
 
 Data summary tables are not the best way to display and summarises data, often
 it can be more beneficial to show data with the aid of a plot. In Figure
@@ -679,6 +573,7 @@ write_csv(summary_method,
 ```
 
 ## Creatinine measures over time at Cambridge and Manchester
+
 ```{r, common functions}
 # Select samples from same patient with at least 30 days apart
 keep_at_least_dist = function(dists, dist=30) {
@@ -3387,7 +3282,6 @@ plot_grid(plots_stratified, legend_stratified, rel_widths = c(5,2))
 
 ```{r data_tables_all_selected, echo = F, include = F, cache=T}
 
-
 Results <- Results_all %>% 
   filter(equation %in% c("CamGFR v2", "CKD-EPI", "MDRD", "LM", "FAS",
                          "CamGFR v1")) 
@@ -4006,9 +3900,10 @@ Validation_fitted_df %>%
 
 ```{r p_values_new, echo = F, eval = F, cache=T}
 
+
+set.seed(1234)
 p_values <- Validation_fitted_df_all %>% 
   Squared_error_permutation_test_all_equations()
-
 
 p_values_CreatType <- Validation_fitted_df_all %>%
   split(., .$Creatinine_type) %>%
@@ -4430,7 +4325,6 @@ mutate(tidy(Refit_CamGFR_Goth), Missing_centre = "Gothenburg") %>%
   pivot_wider(names_from = Missing_centre, values_from = value) %>%
   arrange(name)
 
-install.packages("tidyverse")
 ```
 
 ### Validate on remaining centre
