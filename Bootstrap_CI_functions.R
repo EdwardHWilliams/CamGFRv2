@@ -103,7 +103,7 @@ Statistic_summary_withP20 <- function(df, R = 2000){
     bind_cols(df_RMSE, df_med, df_IQR, df_P20_dose) 
 }
 
-Statistic_summary_withP20_both <- function(df, R = 2000){
+Statistic_summary_with_doseP20 <- function(df, R = 2000){
   df_IQR = df %>%   
     do(my_normal_boot(.$resid, func = IQR, name = "IQR", R = R)) %>%
     ungroup() %>% dplyr::select((ncol(.)-2):ncol(.))
@@ -113,17 +113,14 @@ Statistic_summary_withP20_both <- function(df, R = 2000){
   df_med = df %>%   
     do(my_normal_boot(.$resid, func = median, name = "median")) %>%
     ungroup() %>% dplyr::select((ncol(.)-2):ncol(.))
-  
-  df_P20 = df %>%
-    do(my_normal_boot(.$fitted/.$GFR, func = P20_opp, name = "P20")) %>%
-    ungroup() %>% dplyr::select((ncol(.)-2):ncol(.))
+
   df_P20_dose = df %>%
     do(my_normal_boot(Dose_equ(.$fitted)/Dose_equ(.$GFR), func = P20_opp, name = "P20_dose")) %>%
     ungroup() %>% dplyr::select((ncol(.)-2):ncol(.))
   
   df %>%
     dplyr::summarise(n = n(), median_fitted = median(fitted)) %>%
-    bind_cols(df_RMSE, df_med, df_IQR, df_P20, df_P20_dose) 
+    bind_cols(df_RMSE, df_med, df_IQR, df_P20_dose) 
 }
 
 P30_opp = function(x){
