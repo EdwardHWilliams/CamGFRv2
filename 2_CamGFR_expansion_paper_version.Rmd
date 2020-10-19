@@ -57,6 +57,7 @@ library(segmented)
 # library(readxl)
 library(tidyverse)
 # library(xlsx)
+library(patchwork)
 library(openxlsx)
 library(corrplot)
 library(GGally)
@@ -70,6 +71,7 @@ library(scales)
 library(ggsignif)
 library(googlesheets)
 library(broom.mixed)
+library(reshape2)
 
 # Load the data and helper function
 source("Clean_data.R")
@@ -247,8 +249,6 @@ Summary_variables <- Expansion_data %>%
   as.data.frame() %>%
   select(5, 1, 3, 4, 2, 6, 7)
 
-
-
 Summary_variables_by_centre <- Expansion_data %>%
   mutate(Creat_IDMS = ifelse(Creatinine_type == "IDMS", Creat, NA)) %>%
   mutate(Creat = ifelse(Creatinine_type == "IDMS", NA, Creat)) %>%
@@ -267,14 +267,10 @@ Summary_variables_by_centre <- Expansion_data %>%
     df %>% as.data.frame() %>% select(5, 3, 4, 1, 7, 6, 2)
   }) 
 
-
-
 # STable.1.2_variable_summary_by_centre %>%
 #  lapply(FUN = function(df){
 #    df %>% format(digits = 2, drop0trailing = TRUE) %>% t() %>% kable()
 #  })
-
-
 Variable_summary_by_patient_type <- Expansion_data %>%
   mutate(Creat_IDMS = ifelse(Creatinine_type == "IDMS", Creat, NA)) %>%
   mutate(Creat = ifelse(Creatinine_type == "IDMS", NA, Creat)) %>%
@@ -301,13 +297,11 @@ Variable_summary_by_patient_type <- Expansion_data %>%
 #  lapply(FUN = function(df){
 #    df %>% format(digits = 2, drop0trailing = TRUE) %>% t() %>% kable()
 #  })
-
 ```
 
 
 
 ```{r new_summary table, echo = F, warning=F}
-
 Expansion_data %>%
   filter(Centre == "Gothenburg") %>%
   select("GFR [ml/min]" = GFR, "Creatinine [mg/dL]" = Creat,
@@ -386,7 +380,6 @@ table %>%
   kableExtra::group_rows("Manchester", 21, 27, latex_gap_space = "0.6em",
                          hline_after = T) 
 
-
 Samples_per_centre_all %>%
   mutate_at(.vars = vars(-1), .funs = list(~as.numeric(.))) %>%
   as.data.frame() %>%
@@ -404,13 +397,7 @@ Samples_per_centre_all %>%
                          hline_after = T) %>%
   kableExtra::group_rows("Diagnosis", 10, 34, latex_gap_space = "0.6em",
                          hline_after = T)  
-
-
-
 ```
-
-
-
 
 Data summary tables are not the best way to display and summarises data, often
 it can be more beneficial to show data with the aid of a plot. In Figure
@@ -534,11 +521,8 @@ ggsave(filename= "Comparison_three_dataset_variables.pdf",
        plot = Boxplots_variables, width = 12, height = 9)
 ```
 
-##
-
 
 ```{r checking_patient_numbers, eval = F, include=F}
-
 # Non-cancer numbers
 Non_cancer = Expansion_data %>% 
   filter(Patient_type %in% c("Non-Cancer", "Unknown")) 
@@ -559,11 +543,7 @@ Expansion_data %>%
 Expansion_data %>% 
   filter(Centre == "Gothenburg", 
          Diagnosis == "Unknown")
-  
-
 ```
-
-
 
 ## Ethnical data
 For a subsection of the patient population (specifically the majority of
@@ -624,12 +604,9 @@ Boxplots_ethnicity
 ggsave(file.path(fig_export_dir, "Boxplot_ethnicity.pdf"),
        plot = Boxplots_ethnicity, 
        width = 12, height = 9)
-
 ```
 
-
-
-# Comparing Creatinien methods: IDMS to non-IDMS
+# Comparison of Creatinine methods
 We next aimed to compare IDMS creatinine values to non-IDMS creatinine values in
 more detail to assess whether our model would need to be adjusted in order to be
 suitable for IDMS creatinine measurements.
@@ -651,33 +628,30 @@ We have already seen some comparison between IDMS and non-IDMS creatinine in
 Figure \ref{fig:boxplot_centre_1}, here Figures \ref{fig:boxplot_creat_1} and
 \ref{fig:boxplot_creat_w} show a more detailed comparison between the two
 patient groups. Figure \ref{fig:boxplot_creat_1} shows boxplots for each
-continous variable (log(cratinine), GFR, age, BSA, height and weight) where
-patiets have been split into IDMS and non-IDMS groups. Here we see there is a
-significant difference in the mean creatinein valuebetween IDMS and non-IDMS
-patients from both Cambridge and Manchester. We also observe a differnece in the
+continuous variable (log(cratinine), GFR, age, BSA, height and weight) where
+patients have been split into IDMS and non-IDMS groups. Here we see there is a
+significant difference in the mean creatinine value between IDMS and non-IDMS
+patients from both Cambridge and Manchester. We also observe a difference in the
 mean GFR value for both centres and in the mean age and height values for
-patients from Cambridge. However, the difference in the non-creatinien variables
-is much smaller and doesnt explain the large difference seen in the creatine
-variable. Figure \ref{fig:boxplot_creat_2} shows the difference in the cratinine
-values when patients are split into diagnosis subgroups. This is prduced as
-batients with the same diagosis should be more matched then patients in the
+patients from Cambridge. However, the difference in the non-creatinine variables
+is much smaller and doesnt explain the large difference seen in the creatinine
+variable.
+
+Figure \ref{fig:boxplot_creat_2} shows the difference in the creatinine
+values when patients are split into diagnosis subgroups. This is produced as
+patients with the same diagnosis should be more matched then patients in the
 general population. For the 5 diagnosis shown the difference between IDMS and
 non-IDMS patients is significant.
 
 
-
-```{r Final_creat_figure}
-Creatinein_data_multi <- Adden_long_combined %>% 
+```{r prepare data for paper creatinine figure}
+Creatinine_data_multi <- Adden_long_combined %>% 
   filter(Patient_type != "Non-cancer") %>%
   filter(Creat*88.4 > 18) %>% # remove creatinien values less than 18 as some 
   filter(Creat*88.4 < 400)
 
-################################################################################
-# Plot 1
-################################################################################
-
 give.n <- function(x){
-  return(c(y = median(x), label = length(x))) 
+  return(c(y = median(x)+0.04, label = length(x))) 
   # experiment with the multiplier to find the perfect position
 }
 
@@ -687,102 +661,26 @@ df_mixed <- Expansion_data %>%
   mutate(Creatinine_type = factor(Creatinine_type,
                                   levels = c("IDMS", "Non_IDMS"), 
                                   labels = c("IDMS", "Non-IDMS"))) %>%
-  mutate(x = interaction(Creatinine_type, Creatinine_method, sep = " ")) %>%
+  mutate(x = interaction(Creatinine_type, Creatinine_method, sep = " "),
+         xcopy = x ) %>%
   filter(GFR_index == 1)
 
+summary_centre <- df_mixed %>%
+   group_by(x, Centre) %>%
+   summarise(Scr_median = median(Creat))
+write_csv(summary_centre,
+          file.path(fig_export_dir, "Median_Scr_per_center.csv"))
 
-p1 <- df_mixed %>%
-  ggplot(aes(x = x, 
-             y = Creat, fill = Centre)) + 
-  geom_boxplot(position = "dodge", width = 0.9) + 
-  # facet_wrap(~Creatinine_type) +
-  stat_compare_means(aes(x = 10^Creat),
-                     data= df_mixed,
-                     comparisons = list(c(1,2), c(1,3), c(3,2)),
-                     method = "t.test",
-                     label = "p.signif",
-                     # bracket.size = 0.3, 
-                     inherit.aes = F, 
-                     label.y = c(4.6, 5.5, 6.8) 
-  ) +
-  ggplot_theme() + 
-  ylab("SCr") +
-  scale_fill_manual(values = c(Cambridge = "#5b4e9f", Melbourne = "#88CCEE",
-                               Glasgow = "#44AA99", Gothenburg = "#117733",
-                               Wales = "#999933", Edinburgh = "#DDCC77", 
-                               Manchester = "#CC6677", Southampton = "#882255",
-                               "London-Barts" = "#AA4499")) + 
-  scale_x_discrete(labels=c("IDMS\nEnzymatic",
-                            "IDMS\nJaffe",
-                            "Non-IDMS\nJaffe")) +
-  labs(fill = "Center") + 
-  theme(axis.title.x = element_blank(), 
-        legend.position = "right", 
-        legend.margin=margin(t=-1, r=0, b=1, l=0, unit="cm"),
-        # legend.title = element_blank(), 
-        legend.spacing.x = unit(0.1, 'cm')) + 
-  stat_summary(data = df_mixed %>% filter(Creatinine_type != "IDMS" ), 
-               fun.data = give.n, geom = "text", 
-               position = position_dodge(width = 0.9), 
-               size = 2.5, colour = "white") + 
-  stat_summary(data = df_mixed %>%
-                 filter(Creatinine_type == "IDMS"| is.na(Creatinine_type)), 
-               fun.data = give.n, geom = "text", 
-               position = position_dodge(width = 0.9), 
-               size = 2.5, colour = "white") +
-  # ylim(-1.5, 2.5) + 
-  coord_trans(y = "log10", ylim = c(exp(-1.8), exp(2.15))) +
-  scale_y_continuous(breaks= c(0.3, 0.6, 1.2, 2.4, 4.8)) 
-# scale_y_continuous(breaks= c(0.3, 0.6, 1.2, 2.4, 4.8), trans = "log10")
-p1
+summary_method <- df_mixed %>%
+   group_by(Creatinine_type, Centre) %>%
+   summarise(Scr_median = median(Creat))
+write_csv(summary_method,
+          file.path(fig_export_dir, "Median_Scr_per_method.csv"))
+```
 
-legend1 = g_legend(p1)
-p1 <- p1 +
-  theme(legend.position = "none")
-
-# mu <- df %>%
-#   group_by(x) %>%
-#   rename(Method = x) %>%
-#   summarise(grp.mean=mean(log_Creat))  
-
-p2 <- df_mixed %>% 
-  rename(Method = x) %>%
-  ggplot(aes(x = Creat)) + 
-  geom_line(stat="density",  aes(linetype = Method)) +
-  # geom_density( aes(linetype = Method), show.legend = T) +
-  ggplot_theme() + 
-  # geom_vline(data = mu, aes(xintercept = grp.mean, linetype = Method)) +
-  # scale_x_discrete(labels=c("IDMS Enzymatic", "IDMS Jaffe", "Non-IDMS Jaffe")) + 
-  theme(legend.position = "right", 
-        axis.title.y = element_blank(), 
-        axis.line.y = element_blank(),
-        axis.text.y = element_blank(), 
-        axis.ticks.y = element_blank(), 
-        # legend.title = element_blank(), 
-        legend.margin=margin(t=1, r=0, b=-1, l=0, unit="cm"),
-        legend.spacing.x = unit(0.1, 'cm')) +
-  xlim(c(exp(-1.8), exp(2.15))) +
-  scale_y_continuous(expand=c(0,0)) + 
-  # coord_trans(x = "log10", limx = c(exp(-1.8), exp(2))) +
-  scale_x_continuous(breaks= c(0.3, 0.6, 1.2, 2.4, 4.8), trans = "log10") +
-  coord_flip() 
-legend2 <- g_legend(p2 ) 
-p2 <- p2 + theme(legend.position = "none")
-p2
-legend = plot_grid(legend2, legend1, ncol =1, align = "v",
-                   rel_heights = c(1, 2))
-plot(legend)
-
-plot1 <- plot_grid(p1, p2, legend, nrow =1, rel_widths = c(2, 1, 0.7),
-                   labels = c("A", "B", ""))
-
-
-# pp <- grid.arrange_aligned_2(list(p1,p2))
-
-# plot1 <- plot_grid(p1, p2,  rel_widths = c(1.5, 1))
-
-#################
-
+## Creatinine measures over time at Cambridge and Manchester
+```{r, common functions}
+# Select samples from same patient with at least 30 days apart
 keep_at_least_dist = function(dists, dist=30) {
   keep = rep(FALSE, length(dists))
   for (i in 1:length(dists)) {
@@ -800,36 +698,396 @@ keep_at_least_dist = function(dists, dist=30) {
   return(keep)
 }
 
-plot_data_cam <- Creatinein_data_multi %>%
+stat_convert <- function(compare_means_output, cutoff=0.0001) {
+  compare_means_output %>%
+    mutate(p.label = case_when(p < cutoff ~ paste("<", sprintf("%.4f", cutoff)),
+                               TRUE ~ sprintf("%.4f", p))
+    )
+}
+```
+
+```{r plot settings}
+title_size <- 10
+text_size <- 8
+label_size <- 3
+stripplacement <- "outside"
+
+ylim <- c(0.22,9.6)
+ybreaks <- c(0.3, 0.6, 1.2, 2.4, 4.8, 9.6)
+
+showlegends <- FALSE
+xpos_p <- 2.4
+
+centre_colors <- c(Cambridge = "#5b4e9f", Gothenburg = "#117733",
+                   Manchester = "#CC6677")
+method_colors_all <- c("IDMS Enzymatic"="#e6ab02", "IDMS Jaffe"="#d95f02",
+                   "Non-IDMS Jaffe"="#666666")
+
+method_colors <- c("IDMS"="#fdae61", "Non-IDMS"="#666666")
+```
+
+```{r creatinine measures over time and method}
+data_cam <- Creatinine_data_multi %>%
   filter(!is.na(Date_creat)) %>%
-  mutate(x = interaction(Creatinine_method, Creatinine_type)) %>%
+  mutate(Creatinine_type = factor(Creatinine_type,
+                                  levels = c("IDMS", "Non_IDMS"), 
+                                  labels = c("IDMS", "Non-IDMS"))) %>%
+  mutate(x = interaction(Creatinine_type, Creatinine_method, sep = " ")) %>%
   mutate(log_Creat = log(Creat)) %>%
   group_by(PatientID) %>%
   arrange(PatientID, Date_creat) %>%
   mutate(Date_diff_creat_2 = as.numeric(Date_creat - Date_creat[1])) %>%
   mutate(Date_diff_creat = c(0, diff(Date_creat))) %>%
-  # filter(Date_diff_creat_2 > 10) %>%
   mutate(keep = keep_at_least_dist(Date_diff_creat, 30)) %>%
+  mutate(town="Cambridge") %>%
   filter(keep)
 
-
-plot2 <- plot_data_cam %>%
-  ggplot(aes(y = (Creat), x = Date_creat)) + 
-  geom_point(alpha = 0.1, stroke = 0) + 
-  geom_smooth(aes(group = x), colour = "white", method = "gam", size = rel(2), formula = y ~ s(x, bs = "cs", k=5)) +
-  geom_smooth(aes(group = x), colour = "#5b4e9f", method = "gam", size = rel(1), formula = y ~ s(x, bs = "cs", k=5)) +
-  geom_vline(xintercept = as.Date(c("2013-12-12", "2016-03-01")), linetype = "dashed") +
-  scale_y_continuous(breaks= c(0.3, 0.6, 1.2, 2.4, 4.8), trans = "log10", limits = c(0.3, 4.8)) +
-  scale_x_date(breaks = pretty_breaks(6), expand = c(0, 0)) + 
-  xlab("Date") + ylab("SCr") + 
-  ggplot_theme()
-
-###############
-
-plot3 <- Expansion_data %>%
+data_manchester <- Expansion_data %>%
   filter(Centre == "Manchester") %>%
-  ggplot(aes(y = (Creat), x = Date_creat)) +
-  geom_point(alpha = 0.1, stroke = 0) +
+  mutate(Creatinine_type = factor(Creatinine_type,
+                                  levels = c("IDMS", "Non_IDMS"), 
+                                  labels = c("IDMS", "Non-IDMS"))) %>%
+  mutate(x = interaction(Creatinine_type, Creatinine_method, sep = " "))
+```
+
+```{r timeline for Cambridge with 3 different measurment methods}
+cambridge_stat_3methods <- compare_means(Creat ~ x,
+                                    data_cam,
+                                    method="t.test") %>%
+  stat_convert
+p_cambridge_distribution_3methods <- ggplot() + 
+  geom_density(data=data_cam, aes(y=Creat, color=x))  +
+  scale_y_continuous(breaks = ybreaks, trans = "log10",
+                     limits = ylim) +
+  scale_color_manual(values = method_colors_all) + 
+  labs(y = "SCr",
+       color="Method") +
+  ggplot_theme() +
+  theme(axis.text = element_text(size=text_size),
+        axis.title = element_text(size=title_size),
+        strip.placement = stripplacement,
+        legend.position = "bottom")
+
+p_cambridge_3methods_timeline <- ggplot(data=data_cam,
+                               aes(y = (Creat), x = Date_creat)) + 
+  geom_point(color= "#5b4e9f", alpha = 0.1, stroke = 0) + 
+  facet_wrap(town ~., strip.position = "left") +
+  geom_smooth(aes(group = x), colour = "white", method = "gam",
+              size = rel(2),
+              formula = y ~ s(x, bs = "cs", k=5)) +
+  geom_smooth(aes(group = x, color = x), method = "gam",
+              size = rel(1),
+              formula = y ~ s(x, bs = "cs", k=5),
+              show.legend = FALSE) +
+  scale_color_manual(values = method_colors_all) + 
+  geom_vline(xintercept = as.Date(c("2013-12-12", "2016-03-01")),
+             linetype = "dashed") +
+  scale_y_continuous(breaks = ybreaks,
+                     trans = "log10",
+                     limits = ylim) +
+  scale_x_date(breaks = pretty_breaks(6), expand = c(0, 0)) + 
+  labs(x="Date",
+       y="SCr") + 
+  ggplot_theme() +
+  theme(axis.text = element_text(size=text_size),
+        axis.title = element_text(size=title_size),
+        strip.placement = stripplacement,
+        strip.background = element_rect(fill="white", color="white"),
+        strip.text =  element_text(color="white")
+        )
+
+cambridge_stat_3methods_tbl <- tableGrob(cambridge_stat_3methods[,c(2:3,9)],
+                                         rows=NULL)
+
+legend_method <- cowplot::get_legend(p_cambridge_distribution_3methods)
+figure_tmp <- ggdraw(p_cambridge_distribution_3methods +
+                       theme(legend.position = "none")) +
+  draw_plot(cambridge_stat_3methods_tbl, 0.35, .6, .5, .5, scale=.1)
+
+figure_row <- plot_grid(p_cambridge_3methods_timeline, 
+          figure_tmp)
+
+p_cambridge_3methods <- plot_grid(figure_row, legend_method, nrow=2,
+          rel_heights=c(8,1))
+
+ggsave(plot=p_cambridge_3methods,
+       filename = "Creatinine_cambridge_timeline_supplement.pdf", 
+       path = fig_export_dir,
+       width = 30, height = 10,  units = "cm")
+```
+
+## IDMS by method (enzymatic and jaffe) and non-IDMS
+```{r, eval=T}
+jaffe_idms_vs_jaffe_nonidms <-  df_mixed %>%
+  filter(x %in% c("IDMS Jaffe", "Non-IDMS Jaffe")) %>%
+  mutate(method = "IDMS Jaffe",
+         other = "Non-IDMS Jaffe")
+jaffe_idms_vs_jaffe_nonidms_stat <- compare_means(Creat ~ x,
+                                                  jaffe_idms_vs_jaffe_nonidms,
+                                                  method="t.test") %>%
+  stat_convert
+  
+p_jaffe_idms_vs_jaffe_nonidms <- ggplot() + 
+  geom_violin(data=jaffe_idms_vs_jaffe_nonidms,
+              aes(y = x, x = Creat, fill=x),
+              position = "dodge", width = 0.9, show.legend = showlegends,
+              draw_quantiles=0.5, color="white"
+              ) + 
+  geom_text(aes(label=paste("p", jaffe_idms_vs_jaffe_nonidms_stat$p.label),
+                x=xpos_p, y=1.5), size=label_size, hjust="left") +
+  facet_grid(method ~ other, switch="y") +
+  scale_x_continuous(breaks= ybreaks,
+                     trans = "log10",
+                     limits = ylim) +
+  scale_fill_manual(values=method_colors_all) +
+  labs(fill = "Method",
+       x="SCr") +
+  ggplot_theme() +
+  theme(axis.title.y = element_blank(),
+        axis.text = element_text(size=text_size),
+        axis.title = element_text(size=title_size),
+        strip.placement = stripplacement,
+        strip.background = element_rect(fill="white", color="white"),
+        strip.text =  element_text(color="white")
+        )
+
+jaffe_vs_enzymatic <-  df_mixed %>%
+  filter(x %in% c("IDMS Jaffe", "IDMS Enzymatic")) %>%
+  mutate(method = "IDMS Jaffe",
+         other = "IDMS Enzymatic",)
+jaffe_vs_enzymatic_stat <- compare_means(Creat ~ x,
+                                         jaffe_vs_enzymatic,
+                                         method="t.test") %>%
+  stat_convert
+p_jaffe_vs_enzymatic <- ggplot() + 
+  geom_violin(data=jaffe_vs_enzymatic,
+              aes(y = x, x = Creat, fill=x),
+              position = "dodge", width = 0.9, show.legend = showlegends,
+              draw_quantiles=0.5, color="white"
+              ) +
+  geom_text(aes(label=paste("p =", jaffe_vs_enzymatic_stat$p.label),
+                x=xpos_p, y=1.5), size=label_size, hjust="left") +
+  scale_x_continuous(breaks= ybreaks,
+                     trans = "log10",
+                     limits = ylim) +
+  scale_fill_manual(values = method_colors_all) +
+  facet_grid(method ~ other, switch="y") +
+  labs(fill = "Method",
+       y = "Method") +
+  ggplot_theme() +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text = element_text(size=text_size),
+        strip.placement = stripplacement,
+        strip.background.x = element_rect(fill="white", color="white"),
+        strip.text.x = element_text(color="white")
+        )
+
+enzymatic_idms_vs_jaffe_nonidms <-  df_mixed %>%
+  filter(x %in% c("IDMS Enzymatic", "Non-IDMS Jaffe")) %>%
+  mutate(method = "Non-IDMS Jaffe",
+         other="IDMS Enzymatic")
+enzymatic_idms_vs_jaffe_nonidms_stat <-
+  compare_means(Creat ~ x,
+                enzymatic_idms_vs_jaffe_nonidms,
+                method="t.test")  %>%
+  stat_convert
+
+p_enzymatic_idms_vs_jaffe_nonidms <- ggplot() + 
+  geom_violin(data=enzymatic_idms_vs_jaffe_nonidms,
+              aes(y = x, x = Creat, fill=x),
+              position = "dodge", width = 0.9, show.legend = showlegends,
+              draw_quantiles=0.5, color="white"
+              ) + 
+  geom_text(aes(label=paste("p", enzymatic_idms_vs_jaffe_nonidms_stat$p.label),
+                x=xpos_p, y=1.5), size=label_size, hjust="left") +
+  scale_x_continuous(breaks= ybreaks,
+                     trans = "log10",
+                     limits = ylim) +
+  scale_fill_manual(values=method_colors_all) +
+  facet_grid(method ~ other, switch="y") +
+  labs(fill = "Method",
+       x = "SCr",
+       y = "Method") +
+  ggplot_theme() +
+  theme(legend.position = "bottom",
+        axis.text = element_text(size=text_size),
+        axis.title.y = element_blank(),
+        axis.title = element_text(size=title_size),
+        strip.placement = stripplacement,
+        strip.background.x = element_rect(fill="white", color="white"),
+        strip.text.x = element_text(color="white")
+        )
+
+idms_jaffe <-  df_mixed %>%
+  filter(x=="IDMS Jaffe")
+idms_jaffe_stat <- compare_means(Creat ~ Centre,
+                                 idms_jaffe,
+                                 method="t.test") %>%
+  stat_convert
+p_idms_jaffe_distribution <- ggplot() + 
+  geom_density(data=idms_jaffe,
+               aes(x= Creat, color=Centre),show.legend = showlegends) +
+  geom_text(aes(label=paste("p =", idms_jaffe_stat$p.label),
+                x=xpos_p, y=1), size=label_size, hjust="left") +
+  scale_x_continuous(breaks= ybreaks,
+                     trans = "log10",
+                     limits = ylim) +
+  scale_color_manual(values = centre_colors)  + 
+  facet_wrap(. ~ x) + 
+  ggplot_theme() +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text = element_text(size=text_size),
+        strip.placement = stripplacement)
+
+idms_enzymatic <-  df_mixed %>%
+  filter(x=="IDMS Enzymatic") %>%
+  mutate(xcopy = x)
+idms_enzymatic_stat <- compare_means(Creat ~ Centre,
+                                     idms_enzymatic ,
+                                     method="t.test") %>%
+  stat_convert
+
+p_idms_enzymatic_distribution <- ggplot() + 
+  geom_density(data=idms_enzymatic,
+               aes(x= Creat, color=Centre),show.legend = showlegends) +
+  geom_text(aes(label=paste("p =", idms_enzymatic_stat$p.label),
+                x=xpos_p, y=1), size=label_size, hjust="left") +
+  scale_x_continuous(breaks= ybreaks,
+                     trans = "log10",
+                     limits = ylim) +
+  scale_color_manual(values = centre_colors)  + 
+  facet_grid(xcopy ~ x, switch="y") +
+  ggplot_theme() +
+  theme(axis.title.y = element_blank(),
+        axis.title.x = element_blank(),
+        axis.text = element_text(size=text_size),
+        strip.placement = stripplacement)
+
+nonidms_jaffe <-  df_mixed %>%
+  filter(x=="Non-IDMS Jaffe")
+nonidms_jaffe_stat <- compare_means(Creat ~ Centre,
+                                    nonidms_jaffe,
+                                    method="t.test")  %>%
+  stat_convert
+
+p_nonidms_jaffe_distribution <- ggplot() + 
+  geom_density(data=nonidms_jaffe, aes(x= Creat, color=Centre),
+               show.legend = showlegends)  +
+  geom_text(aes(label=paste("p =", nonidms_jaffe_stat$p.label),
+                x=1.6, y=1), size=label_size, hjust="left") +
+  scale_x_continuous(breaks= ybreaks,
+                     trans = "log10",
+                     limits = ylim) +
+  scale_color_manual(values = centre_colors) + 
+  facet_wrap(. ~ x) +
+  labs(x = "SCr") +
+  ggplot_theme() +
+  theme(axis.text = element_text(size=text_size),
+        axis.title = element_text(size=title_size),
+        strip.placement = stripplacement)
+
+p_legends <- ggplot(data=df_mixed,
+                    aes(y = x, x = Creat, fill=x, color=Centre)) + 
+  geom_violin(position = "dodge", width = 0.9) + 
+  scale_fill_manual(values=method_colors_all) +
+  scale_color_manual(values=centre_colors) +
+  labs(fill = "Method",
+       color="Centre",
+       x = "SCr",
+       y="") +
+  ggplot_theme() +
+  theme(legend.position = "bottom",
+        legend.direction = "horizontal",
+        legend.box="vertical",
+        legend.text = element_text(size=text_size),
+        legend.title = element_text(size=title_size),
+        legend.box.just = "left") + 
+  guides(color = guide_legend(override.aes = list(size = 2),
+                              keywidth = 0.5,keyheight = 0.5,),
+         fill = guide_legend(override.aes = list(size = 0.1),
+                             keywidth = 0.5,keyheight = 0.5,
+         ))
+
+plot_legend <- cowplot::get_legend(p_legends)
+
+layout <- "
+aa#gg#
+bbcc##
+ddeeff
+"
+pairwise_all <- wrap_plots(a = p_idms_enzymatic_distribution,
+                    b = p_jaffe_vs_enzymatic,
+                    c = p_idms_jaffe_distribution,
+                    d = p_enzymatic_idms_vs_jaffe_nonidms,
+                    e = p_jaffe_idms_vs_jaffe_nonidms,
+                    f = p_nonidms_jaffe_distribution,
+                    g = plot_legend,
+                    design = layout) &
+  theme(plot.margin = unit(c(0,0,0.1,0.1), "cm"))
+
+ggsave(plot=pairwise_all,
+       filename = "Creatinine_comparison_all_supplement.pdf", 
+       path = fig_export_dir,
+       width = 25, height = 20,  units = "cm")
+```
+
+## Comparison centers with IDMS and non-IDMs measurements
+```{r timeline for Cambridge and Manchester with 2 different measurment methods}
+p_cambridge_2methods_timeline <- ggplot(data=data_cam,
+                               aes(y = (Creat), x = Date_creat)) + 
+  geom_point(colour = "#5b4e9f", alpha = 0.1, stroke = 0) + 
+  geom_smooth(aes(group = Creatinine_type), colour = "white", method = "gam",
+              size = rel(2),
+              formula = y ~ s(x, bs = "cs", k=5)) +
+  geom_smooth(aes(group = Creatinine_type, color = Creatinine_type),
+              method = "gam",
+              size = rel(1),
+              formula = y ~ s(x, bs = "cs", k=5),
+              show.legend = FALSE) +
+  geom_vline(xintercept = as.Date(c("2013-12-12")),
+             linetype = "dashed") +
+  scale_y_continuous(breaks= ybreaks, trans = "log10",
+                     limits = ylim) +
+  scale_color_manual(values = method_colors) + 
+  scale_x_date(breaks = pretty_breaks(6), expand = c(0, 0)) + 
+  xlab("Date") +
+  ylab("SCr") + 
+  ggplot_theme() +
+  theme(axis.text = element_text(size=text_size),
+        axis.title = element_text(size=title_size),
+        plot.margin = unit(c(0.5,0,0.1,0), "cm")
+        )
+
+cambridge_stat_2methods <- compare_means(Creat ~ Creatinine_type,
+                                         data_cam,
+                                         method="t.test") %>%
+  stat_convert
+
+p_cambridge_distribution_2methods <- ggplot() + 
+  geom_density(data=data_cam, aes(y=Creat, color=Creatinine_type))  +
+  geom_text(aes(label=paste("p", cambridge_stat_2methods$p.label),
+                x=1.8, y=1.5), size=label_size, hjust="left") +
+  scale_y_continuous(breaks= ybreaks, trans = "log10",
+                     limits = ylim) +
+  scale_x_continuous(limits =c(0,5)) +
+  scale_color_manual(values = method_colors) + 
+  labs(y = "SCr",
+       color="Method") +
+  ggplot_theme() +
+  theme(axis.text.x = element_text(size=text_size),
+        axis.title.x = element_text(size=title_size),
+        axis.text.y = element_blank(),
+        axis.title.y = element_blank(),
+        axis.line.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        plot.margin = unit(c(0.5,0,0.1,-0.2), "cm"),
+        legend.position = "bottom")
+
+p_manchester_timeline <- ggplot(data=data_manchester,
+                                aes(y = (Creat), x = Date_creat)) +
+  geom_point(color="#CC6677", alpha = 0.1, stroke = 0) +
   geom_smooth(
     aes(group = Creatinine_type),
     colour = "white",
@@ -838,34 +1096,181 @@ plot3 <- Expansion_data %>%
     formula = y ~ s(x, bs = "cs", k = 5)
   ) +
   geom_smooth(
-    aes(group = Creatinine_type),
-    colour = tol5qualitative[5],
+    aes(group = Creatinine_type, color=Creatinine_type),
     method = "gam",
     size = rel(1),
-    formula = y ~ s(x, bs = "cs", k = 5)
+    formula = y ~ s(x, bs = "cs", k = 5),
+    show.legend = FALSE
   ) +
   geom_vline(xintercept = as.Date("2016-06-08"), linetype = "dashed") +
-  scale_x_date(breaks = pretty_breaks(3), expand = c(0, 0)) +
+  scale_color_manual(values = method_colors) + 
+  scale_x_date(breaks = pretty_breaks(4), expand = c(0, 0)) +
   scale_y_continuous(
-    breaks = c(0.3, 0.6, 1.2, 2.4, 4.8),
+    breaks = ybreaks,
     trans = "log10",
-    limits = c(0.3, 4.8)
+    limits = ylim
   ) +
-  xlab("Date") +  ylab("SCr") +
+  xlab("Date") +
+  ylab("SCr") +
   ggplot_theme() +
-  theme(plot.margin = unit(c(2, 10, 2, 2), "mm"))
+  theme(axis.text = element_text(size=text_size),
+        axis.title = element_text(size=title_size),
+        plot.margin = unit(c(0.5,0,0.1,0), "cm")
+  )
 
-###############
+manchester_stat <- compare_means(Creat ~ Creatinine_type,
+                                 data_manchester,
+                                 method="t.test") %>%
+  stat_convert
+p_manchester_distribution <- ggplot() + 
+  geom_density(data=data_manchester,
+               aes(y=Creat, color=Creatinine_type))  +
+  geom_text(aes(label=paste("p", manchester_stat$p.label),
+                x=1.8, y=1.5), size=label_size, hjust="left") +
+  scale_y_continuous(breaks= ybreaks, trans = "log10",
+                     limits = ylim) +
+  scale_x_continuous(limits =c(0,5)) +
+  scale_color_manual(values = method_colors) + 
+  labs(y = "SCr",
+       color="Method") +
+  ggplot_theme() +
+  theme(axis.text.x = element_text(size=text_size),
+        axis.title.x = element_text(size=title_size),
+        axis.text.y = element_blank(),
+        axis.title.y = element_blank(),
+        axis.line.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        plot.margin = unit(c(0.5,0,0.1,-0.2), "cm"),
+        legend.position = "bottom")
+```
 
+## Simple comparison IDMS to non-IDMS
+```{r, eval=T}
+idms <-  df_mixed %>%
+  filter(Creatinine_type == "IDMS") 
 
-top_plot <- plot_grid(plot2, plot3, labels = c('C', 'D'), align = 'h',
-                      rel_widths = c(4578+3000, 1772+3000))
-creat_fig <- plot_grid(plot1, top_plot, ncol =1, rel_heights = c(1.3, 1))
+idms_stat <- compare_means(Creat ~ Centre, idms, method="t.test") %>%
+  stat_convert %>%
+  arrange(group2)
+p_idms <- ggplot() + 
+  geom_violin(data=idms,
+              aes(x = Centre, y = Creat, fill=Centre),
+              position = "dodge", width = 0.9,
+              draw_quantiles=0.5, color=method_colors[1], alpha=0.8,
+              show.legend = FALSE
+              ) + 
+  geom_bracket(data = idms_stat, 
+    aes(xmin = group1, xmax = group2, label = p.label),
+    y.position =  c(log10(5),log10(5.8), log10(7.8)),
+    label.size=label_size, 
+    tip.length = 0.01
+    ) + 
+  stat_summary(data = idms, 
+               aes(x = Centre, y = Creat),
+               fun.data = give.n, geom = "text", 
+               position = position_dodge(width = 0.9), 
+               size = label_size, colour = "white") + 
+  scale_y_continuous(breaks= ybreaks,
+                     trans = "log10",
+                     limits = ylim
+                     ) +
+  scale_fill_manual(values=centre_colors) +
+  labs(fill = "Centre",
+       y="SCr",
+       x="Centre") +
+  ggplot_theme() +
+  theme(axis.text = element_text(size=text_size),
+        axis.title = element_text(size=title_size),
+        plot.margin = unit(c(0.5,0,0.1,0.1), "cm"),
+        legend.position = "bottom"
+        ) 
 
+nonidms <-  df_mixed %>%
+  filter(Creatinine_type == "Non-IDMS") 
+
+nonidms_stat <- compare_means(Creat ~ Centre, nonidms, method="t.test") %>%
+  stat_convert
+p_nonidms <- ggplot() + 
+  geom_violin(data=nonidms,
+       aes(x = Centre, y = Creat, fill = Centre),
+       position = "dodge", width = 0.9, show.legend = showlegends,
+              draw_quantiles=0.5,
+       color=method_colors[2],
+       alpha=0.8
+       ) + 
+  geom_bracket(data = nonidms_stat, 
+    aes(xmin = group1, xmax = group2, label = p.label),
+    y.position = log10(4.8),
+    step.increase = 0.1,
+    label.size=label_size,
+    tip.length = 0.01,
+    ) + 
+  stat_summary(data = nonidms, 
+               aes(x = Centre, y = Creat),
+               fun.data = give.n,
+               geom = "text", 
+               position = position_dodge(width = 0.9), 
+               size = label_size,
+               colour = "white") + 
+  scale_y_continuous(breaks= ybreaks,
+                     trans = "log10",
+                     limits = ylim 
+                     ) +
+  scale_fill_manual(values=centre_colors) +
+  labs(fill = "Centre",
+       y="SCr",
+       x="Centre") +
+  ggplot_theme() +
+  theme(axis.text = element_text(size=text_size),
+        axis.title = element_text(size=title_size),
+        plot.margin = unit(c(0.5,0,0.1,0.1), "cm")
+        )
+
+p_legends <- ggplot(data=df_mixed,
+                    aes(y = x, x = Creat, fill=Centre, color=Creatinine_type)) + 
+  geom_violin(position = "dodge", width = 0.9) + 
+  scale_color_manual(values=method_colors) +
+  scale_fill_manual(values=centre_colors) +
+  labs(color = "Method",
+       fill="Centre",
+       x = "SCr",
+       y="") +
+  ggplot_theme() +
+  theme(legend.position = "bottom",
+        legend.direction = "horizontal",
+        legend.box="horizontal",
+        legend.text = element_text(size=text_size),
+        legend.title = element_text(size=title_size),
+        legend.box.just = "left") + 
+  guides(color = guide_legend(override.aes = list(size = 2),
+                              keywidth = 0.5,keyheight = 0.5,),
+         fill = guide_legend(override.aes = list(size = 0.1),
+                             keywidth = 0.5,keyheight = 0.5,
+         ) )
+plot_legend <- cowplot::get_legend(p_legends)
+
+upper_row <- plot_grid(p_idms, 
+          p_cambridge_2methods_timeline,
+          p_cambridge_distribution_2methods + theme(legend.position = "none"),
+          ncol=3,
+          rel_widths = c(2, 2.5, 0.7),
+          labels = c("A", "C", "")
+)
+
+lower_row <- plot_grid(p_nonidms, 
+          p_manchester_timeline,
+          p_manchester_distribution + theme(legend.position = "none"),
+          ncol=3,
+          rel_widths = c(2, 2.5, 0.7),
+          labels = c("B", "D", "")
+)
+
+main_creatinine <- plot_grid(upper_row, lower_row,plot_legend, nrow=3,
+          rel_heights = c(3, 3, 1))
 ggsave(filename = "Creatinine_comparison.pdf", 
-       plot = creat_fig, 
+       plot = main_creatinine, 
        path = fig_export_dir,
-       width = 25, height = 20,  units = "cm")
+       width = 18, height = 14,  units = "cm")
 ```
 
 ```{r additional_ttests, eval=F, echo=F}
@@ -1632,7 +2037,6 @@ get_upper_tri <- function(cormat){
 
 upper_tri <- get_upper_tri(cormat)
 
-library(reshape2)
 melted_cormat <- melt(upper_tri, na.rm = TRUE)
 
 p <- ggplot(data = melted_cormat, aes(Var2, Var1, fill = value))+
@@ -2252,7 +2656,6 @@ Spline_model_age_creat <-
                        "log_Creat_nonIDMS" = c(-0.1, .2)), 
             control = seg.control(tol = 1e-06, it.max = 100, h = 0.1))
 Spline_model_age_creat
-
 
 Spline_model_age_creat_NoIDMS <- 
   lm(sqrt(GFR) ~ BSA + Age + Sex + log_Creat +
@@ -3919,7 +4322,6 @@ Results_CreatType_Goth <- Validation_fitted_df_Goth %>%
   Statistic_summary_withP20_both() %>%
   arrange(Creatinine_type, RMSE)
 
-
 Validation_fitted_df_Man <-  Expansion_data %>%
   filter(Centre == "Manchester") %>%
   bind_cols(GFR_fitted_values_eth(.)) %>%
@@ -3951,10 +4353,7 @@ Results_CreatType_Cam <- Validation_fitted_df_Cam %>%
   arrange(Creatinine_type, RMSE)
 
 Results_CreatType_Cam
-
 ```
-
-
 
 
 ```{r save_enviroment, include=F, eval = F}
