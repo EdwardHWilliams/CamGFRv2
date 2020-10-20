@@ -157,7 +157,7 @@ Expansion_data <- Expansion_data %>%
   filter(Date_GFR_diff > 365 | is.na(Date_GFR_diff))
 nrow(Expansion_data)
 
-
+RNGkind(sample.kind = "Rounding")
 set.seed(1)
 # Data that will be used later to refit CamGFR, randomly split into validation 
 # and development datasets
@@ -1590,9 +1590,9 @@ SFigure4_cubic_Creat_fit <- data.frame(x1 = x1, x2 = x2) %>%
   ylab("Effect of log(SCr)") + xlab("log(SCr)")
 SFigure4_cubic_Creat_fit
 
-ggsave(file.path(fig_export_dir, "Cubic_polynomial_fit.pdf"),
-       plot = SFigure4_cubic_Creat_fit, 
-       width = 12, height = 9)
+# ggsave(file.path(fig_export_dir, "Cubic_polynomial_fit.pdf"),
+#        plot = SFigure4_cubic_Creat_fit, 
+#        width = 12, height = 9)
 
 ```
 
@@ -1622,9 +1622,9 @@ Original_refitted_MAplot <-  Expansion_data %>%
   ggplot_theme() 
 Original_refitted_MAplot
 
-ggsave(file.path(fig_export_dir, "Origial_Refit_CamGFR_MAplot.pdf"), 
-       plot = Original_refitted_MAplot, 
-       width = 12, height = 9)
+# ggsave(file.path(fig_export_dir, "Origial_Refit_CamGFR_MAplot.pdf"), 
+#        plot = Original_refitted_MAplot, 
+#        width = 12, height = 9)
 
 
 ```
@@ -1762,9 +1762,9 @@ New_original_comparison_plot <-
   arrangeGrob(g, legend, ncol =2, widths = c(5, 1))
 grid.draw(New_original_comparison_plot)
 
-ggsave(file.path(fig_export_dir, "CamGFR_new_original_comparison_plot.pdf"), 
-       plot = New_original_comparison_plot, 
-       width = 8, height = 6)
+# ggsave(file.path(fig_export_dir, "CamGFR_new_original_comparison_plot.pdf"), 
+#        plot = New_original_comparison_plot, 
+#        width = 8, height = 6)
 ```
 
 ## Adjusting CamGFR
@@ -2472,9 +2472,9 @@ p4 <- Expansion_data_fit %>%
 interactions_plot <- grid.arrange(p1,p2,p3, ncol = 2)
 
 
-ggsave(file.path(fig_export_dir, "Interaction_variable_plot.pdf"), 
-       plot = interactions_plot, 
-       width = 12, height = 9)
+# ggsave(file.path(fig_export_dir, "Interaction_variable_plot.pdf"), 
+#        plot = interactions_plot, 
+#        width = 12, height = 9)
 
 ```
 
@@ -3022,7 +3022,7 @@ Clean_output_table <- function(table, include_p10_p30 = F){
                            starts_with("IQR"),
                            starts_with("median")), 
               list(~round(., 2))) %>%
-    mutate_at(.vars = vars(starts_with("P")), 
+    mutate_at(.vars = vars(starts_with("P10"), starts_with("P20"), starts_with("P30")), 
               list(~round(., 3))) %>%
     rename("median fitted value" = median_fitted) %>%
     mutate(RMSE = paste0(RMSE, " (", RMSE_lwr, ", ", RMSE_upr, ")")) %>%
@@ -3097,7 +3097,7 @@ Results_Centre_all <- Validation_fitted_df_all %>%
   Statistic_summary_withP10_P20_P30() %>%
   arrange(Centre, RMSE)
 
-Results_Centre_CreatType <- Validation_fitted_df_all %>%
+Results_Centre_CreatType_all <- Validation_fitted_df_all %>%
   group_by(equation, Centre) %>%
   Statistic_summary_withP10_P20_P30() %>%
   arrange(Centre, RMSE)
@@ -3134,7 +3134,7 @@ Results_Sex_Creattype_all <- Validation_fitted_df_all %>%
   arrange(Creatinine_type, Sex, RMSE) 
 
 # S12
-Results_PatientType_CreatType_all <- Validation_fitted_df_all %>%
+Results_PatientType_Creattype_all <- Validation_fitted_df_all %>%
   group_by(equation, Patient_type, Creatinine_type) %>%
   Statistic_summary_with_doseP20() %>%
   arrange(Creatinine_type, Patient_type, RMSE) 
@@ -3148,136 +3148,21 @@ Results_eGFR_Creattype_all <- Validation_fitted_df_all %>%
   ungroup() 
 
 
-```
-
-# Repeat measurements for patients
-```{r}
-# difference in sqrt(GFR) between samples of same patient
-md_repeat_samples <- Expansion_data %>%
-  group_by(PatientID, Creatinine_type) %>%
-  mutate(repeat_samples = n()) %>%
-  filter(repeat_samples > 1) %>%
-  do(data.frame(t(combn(.$sqrt_GFR, 2)))) %>%
-  mutate(pdiff=abs(X2-X1)) %>%
-  summarise(mean_difference = mean(pdiff),
-            median_difference = median(pdiff),
-            type = "Repeat samples",
-            .groups="drop")
-
-# Find and format cut points across all patients
-cutpoints <- Expansion_data %>%
-  mutate(Age_cut = cut_number(Age, 5, dig.lab=4)) %>% 
-  mutate(BSA_cut = cut_number(BSA, 5, dig.lab=6)) %>%
-  select(Age_cut, BSA_cut) %>%
-  summarise(age_lower = as.numeric(gsub("[\\[\\(](.*),.*", "\\1", levels(Age_cut))),
-            bsa_lower = as.numeric(gsub("[\\[\\(](.*),.*", "\\1", levels(BSA_cut))),
-            age_higher = as.numeric(gsub(".*,(.*)\\]", "\\1", levels(Age_cut))),
-            bsa_higher = as.numeric(gsub(".*,(.*)\\]", "\\1", levels(BSA_cut)))
-  ) %>%
-  pivot_longer(everything(),names_to = "type", values_to ="cuts") %>%
-  separate(type, into = c("covariate", "interval")) %>%
-  group_by(covariate) %>%
-  summarise(cuts = unique(cuts)) %>%
-  mutate(dummy = 1:n()) %>%
-  pivot_wider(names_from=covariate, values_from=cuts) %>%
-  select(-dummy)
-
-# Stratify patients without repeat measures
-stratified_samples <- Expansion_data %>%
+# S8
+repeats <- Expansion_data %>%
   group_by(PatientID) %>%
-  mutate(repeat_samples = n()) %>%
-  filter(repeat_samples == 1) %>%
-  ungroup() %>%
-  mutate(Age_cut = cut(Age, cutpoints$age, include.lowest =TRUE)) %>% 
-  mutate(BSA_cut = cut(BSA, cutpoints$bsa, include.lowest =TRUE)) %>% 
-  group_by(Age_cut, BSA_cut, Sex, Patient_type, Creatinine_type) %>%
-  unite("group_id", Age_cut, BSA_cut, Sex, Patient_type, Creatinine_type,
-        remove=FALSE)
+  summarise(l = length(unique(fit_index))) %>%
+  filter(l != 1) %>% 
+  pull(PatientID)  
+Results_CreatType_repeats_all <- Validation_fitted_df_all %>%
+  mutate(`Repeat patients` = PatientID %in% repeats) %>%
+  group_by(equation, Creatinine_type, `Repeat patients`) %>%
+  Statistic_summary_with_doseP20() %>%
+  arrange(`Repeat patients`, Creatinine_type, RMSE)
 
-# difference in sqrt(GFR) between samples in same stratification group
-# (no repeat measures)
-md_stratified_samples <- stratified_samples %>%
-  mutate(group_samples = n()) %>%
-  filter(group_samples > 1) %>%
-  do(data.frame(t(combn(.$sqrt_GFR, 2)))) %>%
-  mutate(pdiff=abs(X2-X1)) %>%
-  summarise(mean_difference = mean(pdiff),
-            median_difference = median(pdiff),
-            group_size = n(),
-            type = "Stratified samples",
-            .groups="drop")
-
-# Stratify repeat samples by same intervals/type/measures
-repeat_samples_stratified <- Expansion_data %>%
-  group_by(PatientID, Creatinine_type) %>%
-  mutate(repeat_samples = n()) %>%
-  filter(repeat_samples > 1) %>%
-  mutate(Age_cut = cut(Age, cutpoints$age, include.lowest =TRUE)) %>% 
-  mutate(BSA_cut = cut(BSA, cutpoints$bsa, include.lowest =TRUE)) %>%
-  group_by(Age_cut, BSA_cut, Sex, Patient_type, Creatinine_type) %>%
-  unite("group_id", Age_cut, BSA_cut, Sex, Patient_type, Creatinine_type,
-        remove=FALSE)
-
-# Calculate distances between patients with repeat measures and other samples in
-# same stratify group
-## match groups
-repeat_samples_stratified_list <- repeat_samples_stratified %>%
-  group_split()
-names(repeat_samples_stratified_list) <-
-  unique(repeat_samples_stratified$group_id)
-  
-stratified_samples_list <- stratified_samples  %>%
-  group_split()
-names(stratified_samples_list) <- unique(stratified_samples$group_id)
-
-## make sure groups match up
-repeat_samples_stratified_list <- repeat_samples_stratified_list[
-  names(repeat_samples_stratified_list) %in% names(stratified_samples_list)]
-stratified_samples_list <- stratified_samples_list[
-  names(stratified_samples_list) %in% names(repeat_samples_stratified_list)]
-stratified_samples_list <- stratified_samples_list[
-  match(names(repeat_samples_stratified_list),names(stratified_samples_list))]
-
-testthat::expect_equal(names(repeat_samples_stratified_list),
-                       names(stratified_samples_list))
-
-md_repeat_to_stratified <- lapply(seq_along(stratified_samples_list), function(group_index) {
-  rs <- repeat_samples_stratified_list[[group_index]]
-  ss <- stratified_samples_list[[group_index]]
-  mean_per_rs <- sapply(rs$sqrt_GFR, function(x) mean(abs(x - ss$sqrt_GFR)))
-  median_per_rs <- sapply(rs$sqrt_GFR, function(x) median(abs(x - ss$sqrt_GFR)))
-  tibble(PatientID = rs$PatientID,
-         Creatinine_type = rs$Creatinine_type,
-         mean_difference = mean_per_rs,
-         median_difference = median_per_rs,
-         type = "Repeat to stratified")
-}) %>%
-  bind_rows
-
-md <- bind_rows(md_repeat_samples, md_stratified_samples, md_repeat_to_stratified)
-
-p_mean_diff <- ggplot(data=md) +
-  geom_density(aes(x=mean_difference, color=type), show.legend = FALSE) +
-  scale_color_brewer(type="qual") +
-  labs(x="Mean difference sqrt(GFR)",
-       y="Density",
-       color="Comparsion") +
-  ggplot_theme()
-p_median_diff <- ggplot(data=md) +
-  geom_density(aes(x=median_difference, color=type)) +
-  scale_color_brewer(type="qual") +
-  labs(x="Median difference sqrt(GFR)",
-       y="Density",
-       color="Comparsion") +
-  ggplot_theme() +
-  theme(legend.position = "right",
-        legend.direction = "vertical")
-legend_stratified <- get_legend(p_median_diff)
-plots_stratified <- plot_grid(p_mean_diff,
-                             p_median_diff + theme(legend.position = "none"),
-                             nrow=2)
-plot_grid(plots_stratified, legend_stratified, rel_widths = c(5,2))
 ```
+
+
 
 
 ```{r data_tables_all_selected, echo = F, include = F, cache=T}
@@ -3338,6 +3223,13 @@ Results_eGFR_Creattype <- Results_eGFR_Creattype_all %>%
 Clean_Results_eGFR_Creattype <- Clean_output_table(Results_eGFR_Creattype)
 
 
+# S ... 
+Results_CreatType_repeats <- Results_CreatType_repeats_all %>% 
+      filter(equation %in% c("CamGFR v2", "CKD-EPI", "MDRD", "LM", "FAS",
+                         "CamGFR v1")) 
+Clean_Results_CreatType_repeats <- Clean_output_table(Results_CreatType_repeats)
+
+
 ```
 
 
@@ -3365,11 +3257,39 @@ Clean_Results_PatientType_Creattype  %>%
 
 # S13 
 Clean_Results_eGFR_Creattype  %>%
-  write_csv(path = file.path(fig_export_dir, "S12.csv"))
+  write_csv(path = file.path(fig_export_dir, "S13.csv"))
+
+# S... 
+Clean_Results_CreatType_repeats  %>%
+  write_csv(path = file.path(fig_export_dir, "Results_by_repeats.csv"))
+
 
 ```
 
 
+```{r}
+Table_S9_S13 = createWorkbook()
+
+addWorksheet(Table_S9_S13, "S9")
+writeData(Table_p_values, 1,  as.data.frame(Clean_Results_Age_Creattype),  
+          startCol=1, rowNames=FALSE)
+addWorksheet(Table_S9_S13, "S10")
+writeData(Table_S9_S13, 1,  as.data.frame(Clean_Results_BSA_Creattype),  
+          startCol=1, rowNames=FALSE)
+addWorksheet(Table_S9_S13, "S11")
+writeData(Table_S9_S13, 2,  as.data.frame(Clean_Results_Sex_Creattype),  
+          startCol=1, rowNames=FALSE)
+addWorksheet(Table_S9_S13, "S12")
+writeData(Table_S9_S13, 3,  as.data.frame(Clean_Results_PatientType_Creattype),  
+          startCol=1, rowNames=FALSE)
+addWorksheet(Table_S9_S13, "S13")
+writeData(Table_S9_S13, 4,  as.data.frame(Clean_Results_eGFR_Creattype),  
+          startCol=1, rowNames=FALSE)
+
+saveWorkbook(Table_S9_S13, file.path(fig_export_dir, "Table_S9_S13.xlsx"), overwrite = T)
+
+
+```
 
 
 
@@ -3598,7 +3518,7 @@ ggsave(file.path(fig_export_dir, "p.S13_eGFR_Creattype.png"), width = 15, height
 ```{r dose_assesment, echo = F, eval = F, include= F}
 Results_CreatType_dose <- Validation_fitted_df %>%
   group_by(equation, Creatinine_type) %>%
-  Statistic_summary_withP20_both()  
+  Statistic_summary_with_doseP20()  
 Results_CreatType_dose %>% 
   arrange(Creatinine_type, P20_dose) %>% 
   select(Creatinine_type, median, RMSE, IQR, P20_dose, P20_dose_lwr, 
@@ -3901,7 +3821,6 @@ Validation_fitted_df %>%
 ```{r p_values_new, echo = F, eval = F, cache=T}
 
 
-set.seed(1234)
 p_values <- Validation_fitted_df_all %>% 
   Squared_error_permutation_test_all_equations()
 
@@ -3962,7 +3881,7 @@ writeData(Table_p_values, 3,
           as.data.frame(p_values_CreatType),  startCol=1,
           rowNames=FALSE)
 
-saveWorkbook(Table_p_values, file.path(fig_export_dir, "P_values.xlsx"))
+saveWorkbook(Table_p_values, file.path(fig_export_dir, "P_values_new.xlsx"), overwrite = T)
 
 
 
@@ -3989,6 +3908,135 @@ saveRDS(Refit_CamGFR, file = "CamGFR_reffitted.rds")
 
 ## Model assesment
 
+### Repeat measurements for patients
+```{r}
+# difference in sqrt(GFR) between samples of same patient
+md_repeat_samples <- Expansion_data %>%
+  group_by(PatientID, Creatinine_type) %>%
+  mutate(repeat_samples = n()) %>%
+  filter(repeat_samples > 1) %>%
+  do(data.frame(t(combn(.$sqrt_GFR, 2)))) %>%
+  mutate(pdiff=abs(X2-X1)) %>%
+  summarise(mean_difference = mean(pdiff),
+            median_difference = median(pdiff),
+            type = "Repeat samples",
+            .groups="drop")
+
+# Find and format cut points across all patients
+cutpoints <- Expansion_data %>%
+  mutate(Age_cut = cut_number(Age, 5, dig.lab=4)) %>% 
+  mutate(BSA_cut = cut_number(BSA, 5, dig.lab=6)) %>%
+  select(Age_cut, BSA_cut) %>%
+  summarise(age_lower = as.numeric(gsub("[\\[\\(](.*),.*", "\\1", levels(Age_cut))),
+            bsa_lower = as.numeric(gsub("[\\[\\(](.*),.*", "\\1", levels(BSA_cut))),
+            age_higher = as.numeric(gsub(".*,(.*)\\]", "\\1", levels(Age_cut))),
+            bsa_higher = as.numeric(gsub(".*,(.*)\\]", "\\1", levels(BSA_cut)))
+  ) %>%
+  pivot_longer(everything(),names_to = "type", values_to ="cuts") %>%
+  separate(type, into = c("covariate", "interval")) %>%
+  group_by(covariate) %>%
+  summarise(cuts = unique(cuts)) %>%
+  mutate(dummy = 1:n()) %>%
+  pivot_wider(names_from=covariate, values_from=cuts) %>%
+  select(-dummy)
+
+# Stratify patients without repeat measures
+stratified_samples <- Expansion_data %>%
+  group_by(PatientID) %>%
+  mutate(repeat_samples = n()) %>%
+  filter(repeat_samples == 1) %>%
+  ungroup() %>%
+  mutate(Age_cut = cut(Age, cutpoints$age, include.lowest =TRUE)) %>% 
+  mutate(BSA_cut = cut(BSA, cutpoints$bsa, include.lowest =TRUE)) %>% 
+  group_by(Age_cut, BSA_cut, Sex, Patient_type, Creatinine_type) %>%
+  unite("group_id", Age_cut, BSA_cut, Sex, Patient_type, Creatinine_type,
+        remove=FALSE)
+
+# difference in sqrt(GFR) between samples in same stratification group
+# (no repeat measures)
+md_stratified_samples <- stratified_samples %>%
+  mutate(group_samples = n()) %>%
+  filter(group_samples > 1) %>%
+  do(data.frame(t(combn(.$sqrt_GFR, 2)))) %>%
+  mutate(pdiff=abs(X2-X1)) %>%
+  summarise(mean_difference = mean(pdiff),
+            median_difference = median(pdiff),
+            group_size = n(),
+            type = "Stratified samples",
+            .groups="drop")
+
+# Stratify repeat samples by same intervals/type/measures
+repeat_samples_stratified <- Expansion_data %>%
+  group_by(PatientID, Creatinine_type) %>%
+  mutate(repeat_samples = n()) %>%
+  filter(repeat_samples > 1) %>%
+  mutate(Age_cut = cut(Age, cutpoints$age, include.lowest =TRUE)) %>% 
+  mutate(BSA_cut = cut(BSA, cutpoints$bsa, include.lowest =TRUE)) %>%
+  group_by(Age_cut, BSA_cut, Sex, Patient_type, Creatinine_type) %>%
+  unite("group_id", Age_cut, BSA_cut, Sex, Patient_type, Creatinine_type,
+        remove=FALSE)
+
+# Calculate distances between patients with repeat measures and other samples in
+# same stratify group
+## match groups
+repeat_samples_stratified_list <- repeat_samples_stratified %>%
+  group_split()
+names(repeat_samples_stratified_list) <-
+  unique(repeat_samples_stratified$group_id)
+  
+stratified_samples_list <- stratified_samples  %>%
+  group_split()
+names(stratified_samples_list) <- unique(stratified_samples$group_id)
+
+## make sure groups match up
+repeat_samples_stratified_list <- repeat_samples_stratified_list[
+  names(repeat_samples_stratified_list) %in% names(stratified_samples_list)]
+stratified_samples_list <- stratified_samples_list[
+  names(stratified_samples_list) %in% names(repeat_samples_stratified_list)]
+stratified_samples_list <- stratified_samples_list[
+  match(names(repeat_samples_stratified_list),names(stratified_samples_list))]
+
+testthat::expect_equal(names(repeat_samples_stratified_list),
+                       names(stratified_samples_list))
+
+md_repeat_to_stratified <- lapply(seq_along(stratified_samples_list), function(group_index) {
+  rs <- repeat_samples_stratified_list[[group_index]]
+  ss <- stratified_samples_list[[group_index]]
+  mean_per_rs <- sapply(rs$sqrt_GFR, function(x) mean(abs(x - ss$sqrt_GFR)))
+  median_per_rs <- sapply(rs$sqrt_GFR, function(x) median(abs(x - ss$sqrt_GFR)))
+  tibble(PatientID = rs$PatientID,
+         Creatinine_type = rs$Creatinine_type,
+         mean_difference = mean_per_rs,
+         median_difference = median_per_rs,
+         type = "Repeat to stratified")
+}) %>%
+  bind_rows
+
+md <- bind_rows(md_repeat_samples, md_stratified_samples, md_repeat_to_stratified)
+
+p_mean_diff <- ggplot(data=md) +
+  geom_density(aes(x=mean_difference, color=type), show.legend = FALSE) +
+  scale_color_brewer(type="qual") +
+  labs(x="Mean difference sqrt(GFR)",
+       y="Density",
+       color="Comparsion") +
+  ggplot_theme()
+p_median_diff <- ggplot(data=md) +
+  geom_density(aes(x=median_difference, color=type)) +
+  scale_color_brewer(type="qual") +
+  labs(x="Median difference sqrt(GFR)",
+       y="Density",
+       color="Comparsion") +
+  ggplot_theme() +
+  theme(legend.position = "right",
+        legend.direction = "vertical")
+legend_stratified <- get_legend(p_median_diff)
+plots_stratified <- plot_grid(p_mean_diff,
+                             p_median_diff + theme(legend.position = "none"),
+                             nrow=2)
+plot_grid(plots_stratified, legend_stratified, rel_widths = c(5,2))
+```
+
 
 ```{r BMI_assesment, echo  = F, eval = F}
 
@@ -4013,7 +4061,7 @@ a = Validation_fitted_df %>%
   mutate(BMI_group = cut(BMI, c(0, 18.5, 25, 30, 100))) %>%  
   group_by(equation, BMI_group, Creatinine_type) %>% 
   mutate(resid = sqrt(GFR) - sqrt(fitted)) %>%
-  Statistic_summary_withP20_both() 
+  Statistic_summary_with_doseP20() 
 a %>%
   arrange(Creatinine_type, equation, BMI_group) %>%
   print(n = 100)
@@ -4076,7 +4124,7 @@ Results_nonIDMS_data_date_diff <- Expansion_data %>%
   mutate(resid = GFR - fitted) %>%
   # filter(Centre =="Cambridge") %>%
   group_by(equation, Date_diff_group) %>%
-  Statistic_summary_withP20_both() %>%
+  Statistic_summary_with_doseP20() %>%
   arrange(Date_diff_group, equation) %>%
   # select(-P20, -P20_lwr, -P20_upr)
   select(-P20_dose, -P20_dose_lwr, -P20_dose_upr) 
@@ -4138,9 +4186,16 @@ plot_date_diff <- ggdraw() +
                   c(1, 0.5, 0.5) - 0.025, size = 17)
 plot_date_diff
 
-ggsave("Date_difference_plot.pdf", plot = plot_date_diff, 
+# ggsave("Date_difference_plot.pdf", plot = plot_date_diff, 
+#        path = fig_export_dir ,
+#        width = 20*1.3, height = 18*1.3, units = "cm")
+
+ggsave("Date_difference_histogram.pdf", plot = GFR_creatinine_date_diff_plot, 
        path = fig_export_dir ,
-       width = 20*1.3, height = 18*1.3, units = "cm")
+       width = 20*1.3/1.5, height = 18*1.3/2, units = "cm")
+
+
+
 ```
 
 
@@ -4275,7 +4330,7 @@ JNCI_fitted_values <- New_nonIDMS_data_JNCI %>%
 
 JNCI_fitted_values %>%
   group_by(equation) %>%
-  Statistic_summary_withP20_both() %>%
+  Statistic_summary_with_doseP20() %>%
   # select(-P20_dose, -P20_dose_lwr, -P20_dose_upr) %>%
   arrange(RMSE) %>%
   Clean_results() %>%
@@ -4285,7 +4340,7 @@ JNCI_fitted_values %>%
 
 JNCI_fitted_values %>%
   group_by(equation, Centre) %>%
-  Statistic_summary_withP20_both() %>%
+  Statistic_summary_with_doseP20() %>%
   # select(-P20_dose, -P20_dose_lwr, -P20_dose_upr) %>%
   arrange(Centre, RMSE) %>%
   Clean_results() %>%
@@ -4330,10 +4385,12 @@ mutate(tidy(Refit_CamGFR_Goth), Missing_centre = "Gothenburg") %>%
 ### Validate on remaining centre
 
 ```{r validate_two_centre_models, eval = F, echo = F}
+
 Validation_fitted_df_Goth <-  Expansion_data %>%
   filter(Centre == "Gothenburg") %>%
   bind_cols(GFR_fitted_values_eth(.)) %>%
   mutate(Refit_CamGFR_Goth = predict(Refit_CamGFR_Goth, newdata = .)^2) %>%
+  mutate(CamGFR_v1 = predict(Addenbrooks_sqrt_model, newdata = .)^2) %>%
   mutate(MDRD = ifelse(Creatinine_type == "IDMS", MDRD_adj_IDMS, MDRD_adj)) %>% 
   rename(`CKD-EPI` = CKD_adj, LM = LM_adj, FAS = FAS_adj) %>%
   gather(key = equation, value = fitted,
@@ -4342,40 +4399,58 @@ Validation_fitted_df_Goth <-  Expansion_data %>%
 
 Results_CreatType_Goth <- Validation_fitted_df_Goth %>%
   group_by(equation, Creatinine_type) %>%
-  Statistic_summary_withP20_both() %>%
+  Statistic_summary_with_doseP20() %>%
   arrange(Creatinine_type, RMSE)
 
 Validation_fitted_df_Man <-  Expansion_data %>%
   filter(Centre == "Manchester") %>%
   bind_cols(GFR_fitted_values_eth(.)) %>%
-  mutate(Refit_CamGFR_Goth = predict(Refit_CamGFR_Man, newdata = .)^2) %>%
+  mutate(Refit_CamGFR_Man = predict(Refit_CamGFR_Man, newdata = .)^2) %>%
+  mutate(CamGFR_v1 = predict(Addenbrooks_sqrt_model, newdata = .)^2) %>%
   mutate(MDRD = ifelse(Creatinine_type == "IDMS", MDRD_adj_IDMS, MDRD_adj)) %>% 
   rename(`CKD-EPI` = CKD_adj, LM = LM_adj, FAS = FAS_adj) %>%
   gather(key = equation, value = fitted,
-         Refit_CamGFR_Goth, `CKD-EPI`, MDRD, LM, FAS) %>%
+         Refit_CamGFR_Man, `CKD-EPI`, MDRD, LM, FAS) %>%
   mutate(resid = GFR - fitted)
 
 Results_CreatType_Man <- Validation_fitted_df_Man %>%
   group_by(equation, Creatinine_type) %>%
-  Statistic_summary_withP20_both() %>%
+  Statistic_summary_with_doseP20() %>%
   arrange(Creatinine_type, RMSE)
 
 Validation_fitted_df_Cam <-  Expansion_data %>%
   filter(Centre == "Cambridge") %>%
   bind_cols(GFR_fitted_values_eth(.)) %>%
-  mutate(Refit_CamGFR_Goth = predict(Refit_CamGFR_Cam, newdata = .)^2) %>%
+  mutate(Refit_CamGFR_Cam = predict(Refit_CamGFR_Cam, newdata = .)^2) %>%
+  mutate(CamGFR_v1 = predict(Addenbrooks_sqrt_model, newdata = .)^2) %>%
   mutate(MDRD = ifelse(Creatinine_type == "IDMS", MDRD_adj_IDMS, MDRD_adj)) %>% 
   rename(`CKD-EPI` = CKD_adj, LM = LM_adj, FAS = FAS_adj) %>%
   gather(key = equation, value = fitted,
-         Refit_CamGFR_Goth, `CKD-EPI`, MDRD, LM, FAS) %>%
+         Refit_CamGFR_Cam, `CKD-EPI`, MDRD, LM, FAS) %>%
   mutate(resid = GFR - fitted)
 
 Results_CreatType_Cam <- Validation_fitted_df_Cam %>%
   group_by(equation, Creatinine_type) %>%
-  Statistic_summary_withP20_both() %>%
+  Statistic_summary_with_doseP20() %>%
   arrange(Creatinine_type, RMSE)
 
-Results_CreatType_Cam
+
+Two_centre_models_results  <- 
+  mutate(Results_CreatType_Cam, "Validation Centre" = "Cambridge")  %>% 
+  bind_rows(mutate(Results_CreatType_Man, "Validation Centre" = "Manchester")) %>%
+  bind_rows(mutate(Results_CreatType_Goth, "Validation Centre" = "Gothenburg")) %>%
+  select(`Validation Centre`, everything()) %>%
+  Clean_output_table() %>% 
+  mutate(equation = recode(equation, 
+                           "Refit_CamGFR_Cam" = "CamGFR v2 Man/Goth", 
+                           "Refit_CamGFR_Goth" = "CamGFR v2 Cam/Man", 
+                           "Refit_CamGFR_Man" = "CamGFR v2 Cam/Goth", 
+                           "CamGFR_v1" = "CamGFR v1")) 
+  
+Two_centre_models_results  %>%
+  write_csv(file = file.path(fig_export_dir, "Two_centre_validation_results.csv"))
+
+
 ```
 
 
