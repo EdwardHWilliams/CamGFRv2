@@ -3562,7 +3562,9 @@ df %>%
 ### Model comparison figure 
 
 ```{r Figure_model_comaprison_plot, fig.width=9, fig.height=9}
-Results_plot <- Results_CreatType 
+Results_plot <- Results_CreatType %>%
+  mutate(equation = factor(equation, 
+                           levels = c("CamGFR v2","CamGFR v1", "LM", "CKD-EPI", "FAS", "MDRD")))
   
 p1 <- Results_plot %>% 
   ggplot(aes_string(x = "Creatinine_type", y = "RMSE", group = "equation")) + 
@@ -3655,6 +3657,10 @@ ggsave("Refit_CamGFR_comparison.pdf", plot = plot_creat,
 ```{r Figure_model_comaprison_fucntion, fig.width=9, fig.height=9}
 
 plot_func <- function(data, facets){
+  data = data %>%
+    mutate(equation = factor(equation, 
+                           levels = c("CamGFR v2","CamGFR v1", "LM", "CKD-EPI", "FAS", "MDRD")))
+  
   p1 <- data %>% 
      ggplot(aes_string(x = 1, y = "RMSE", group = "equation")) + 
   geom_errorbar(aes_string(ymin = "RMSE_lwr", ymax = "RMSE_upr",
