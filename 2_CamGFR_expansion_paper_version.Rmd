@@ -177,9 +177,9 @@ Expansion_data_fit <- Expansion_data %>%
   mutate(Creatinine_type = factor(Creatinine_type, levels = c("Non_IDMS", "IDMS")))
 
 # correcting paient_type 
-Expansion_data <- Expansion_data %>%
-  mutate(Patient_type = ifelse(Patient_type == "Unknown", "Non-Cancer",
-                               Patient_type))
+# Expansion_data <- Expansion_data %>%
+#   mutate(Patient_type = ifelse(Patient_type == "Unknown", "Non-Cancer",
+#                                Patient_type))
 
 ```
 
@@ -261,7 +261,16 @@ write_excel_csv(Repeat_GFR_summary,
 
 ```{r new_summary table, echo = F, warning=F}
 
-
+Gothenburg_summary <- Expansion_data %>%
+  filter(Centre == "Gothenburg") %>%
+  select("GFR [ml/min]" = GFR, "Creatinine [mg/dL]" = Creat,
+         "Age [years]" = Age, "Height [cm]" = Ht, "Weight [kg]" = Wt, 
+         "BSA [m\u00B2]" = BSA, 
+         Centre) %>%
+  gather(key = variable, value = value, -Centre) %>%
+  group_by(Centre, variable) %>%
+  summarise(Median.IDMS = median(value), 
+            IQR.IDMS = IQR(value))
 
 Summary_variables_by_centre <- Expansion_data %>%
   filter(Centre != "Gothenburg") %>%
@@ -282,7 +291,7 @@ Summary_variables_by_centre <- Expansion_data %>%
          "IQR.Non-IDMS" = IQR(unlist(Non_IDMS)), 
          "p-value" = wilcox.test(unlist(IDMS), unlist(Non_IDMS))$p.value) %>%
   dplyr::select(-IDMS, -Non_IDMS) %>%
-  bind_rows(.) %>%
+  bind_rows(Gothenburg_summary) %>%
   mutate_if(is.numeric, signif, 3)
 
 
