@@ -20,7 +20,7 @@ output:
     df_print: paged
 affiliation: University of Cambridge
 editor_options:
-  chunk_output_type: console
+  chunk_output_type: inline
 endnote: no
 fontfamily: mathpazo
 fontsize: 11pt
@@ -263,7 +263,7 @@ write_excel_csv(Repeat_GFR_summary,
 
 Gothenburg_summary <- Expansion_data %>%
   filter(Centre == "Gothenburg") %>%
-  select("GFR [ml/min]" = GFR, "Creatinine [mg/dL]" = Creat,
+  dplyr::select("GFR [ml/min]" = GFR, "Creatinine [mg/dL]" = Creat,
          "Age [years]" = Age, "Height [cm]" = Ht, "Weight [kg]" = Wt, 
          "BSA [m\u00B2]" = BSA, 
          Centre) %>%
@@ -1371,19 +1371,21 @@ ratio of 4:1.
 
 ## Development set and validation set description
 
-```{r Comparison_development_vs_validation, results='hide'}
+```{r Comparison_development_vs_validation, results="hide"}
 source("Functions_for_group_comparison.R")
-
-vars.all <- c("GFR", "Age", "Creat", "Ht", "Wt", "SufA", "Sex", "Centre", "Patient_type",
-              "Number_GFR", "GFR_index", "Creatinine_type", "Creatinine_method","Radiopharm",
-              "BSA", "BMI", "fit_index")
-marker.units.all <- vars.all
-
-dat.work <- data.frame(Expansion_data)[,vars.all]
-dat.work$fit_index <- factor(dat.work$fit_index, levels = c("TRUE", "FALSE"), labels = c("Development", "Validation"))
-vars.all.cat <- c(0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 
-                  1, 1, 1, 1, 0, 0, 1)
-
+vars.all <- c("Age", "BSA", "Creat", "GFR", # continuous
+              "Sex", "Centre", "Creatinine_type", "Patient_type", "fit_index") # categorical
+dat.work <- data.frame(Expansion_data[,vars.all])
+dat.work$fit_index <- factor(as.character(dat.work$fit_index), 
+                             levels = c("TRUE", "FALSE"), 
+                             labels = c("Development", "Validation"))
+dat.work$Sex <- factor(dat.work$Sex, levels = c("F", "M"), labels = c("Female", "Male"))
+dat.work$Centre <- factor(dat.work$Centre, levels = c("Cambridge", "Manchester", "Gothenburg"))
+dat.work$Patient_type <- factor(dat.work$Patient_type, levels = c("Cancer", "Haem", "Non-Cancer", "Unknown"))
+dat.work$Creatinine_type <- factor(dat.work$Creatinine_type)
+vars.all.cat <- rep(c(0, 1), c(4, 6))
+vars.all.chisq <- rep(c(0, 1), c(4, 6))
+marker.units.all<- vars.all
 var.y<-"fit_index"
 var.y.lab <- var.y
 header <- "\n"
@@ -1391,23 +1393,21 @@ vars.rm <- c("fit_index")
 id.rm <- match(vars.rm, vars.all)
 vars <- vars.all[-id.rm]
 vars.cat <- vars.all.cat[-id.rm]
+vars.all.chisq <- vars.all.chisq[-id.rm]
 vars.univar <- vars.all[-id.rm]
-vars.univar.cat <- vars.all.cat[-id.rm]
-marker.units <- marker.units.all[-id.rm]
+vars.univar.cat<-vars.all.cat[-id.rm]
+marker.units<- marker.units.all[-id.rm]
+out1.name <- paste("out1.name", sep="")
+assign(out1.name, fsmry.dmgrph(dat = dat.work, vars = vars, vars.cat = vars.cat, vars.chisq = vars.all.chisq, by = "fit_index", all = T, IQR = T, markdown = F))
 
-assign("out1.name", fsmry.dmgrph(dat = dat.work, 
-                                 vars = vars, vars.cat = vars.cat, by = "fit_index", all = T, IQR = T))
-colnames(out1.name[[1]])[c(3,4)] <- c(paste0("Development (n=", as.vector(table(dat.work$fit_index)[1]), ")"),
-                                      paste0("Validation (n=", as.vector(table(dat.work$fit_index)[2]), ")"))
-```
-
-```{r Comparison_development_vs_validation_result, results = "asis"}
-print(knitr::kable(get("out1.name")[[1]] %>% tibble::remove_rownames()))
+get("out1.name")[[1]] %>% tibble::remove_rownames() #%>% knitr::kable()
+write.csv(get("out1.name")[[1]], 
+            paste(file.path(fig_export_dir, "Table_Development_vs_Validation.csv"), sep=""), sep="\t",
+          row.names = F)
 ```
 
 
 ## Refitted CamGFR
-
 
 ```{r refit_model_with_IDMSinteraction, eval = T, include = F}
 # Expansion_data_fit 
@@ -1499,7 +1499,7 @@ summary(Refit_CamGFR)$coef %>%
                          "$\\beta_6$", "$\\beta_{10}$", "$\\beta_7$", 
                          "$\\beta_{11}$", "$\\beta_{12}$")) %>%
   arrange(c(0, 1, 2, 3, 4, 8, 5, 9, 6, 10, 7, 11, 12)) %>% 
-  dplyr::selectVariable, Coefficient, everything()) %>%
+  dplyr::select(Variable, Coefficient, everything()) %>%
   mutate(Variable = c("$(Intercept)$", "$Age$", "$BSA$", "$Sex_M$", "$Scr_{IDMS}$",
                       "$log(Scr)Scr_{IDMS}$", "$log(Scr)^2Scr_{IDMS}$", 
                       "$log(Scr)^3Scr_{IDMS}$", "$log(Scr)Scr_{Non-IDMS}$",
@@ -1529,7 +1529,7 @@ p1 <- Expansion_data_fit %>%
   mutate(fitted = Refit_CamGFR$fitted.values) %>%
   mutate(resid = Refit_CamGFR$residuals) %>%
   mutate(log_Creat = log(Creat)) %>%
-  dplyr::selectresid, fitted, Age, log_Creat, BSA, Centre, Creatinine_type) %>%
+  dplyr::select(resid, fitted, Age, log_Creat, BSA, Centre, Creatinine_type) %>%
   gather(key = variable, value = value, -resid, -Centre, -Creatinine_type) %>%
   mutate(variable = factor(variable,
                            levels = c("Age", "fitted", "log_Creat", "BSA"), 
