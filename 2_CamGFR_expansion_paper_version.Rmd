@@ -260,6 +260,8 @@ write_excel_csv(Repeat_GFR_summary,
 
 ```{r new_summary table, echo = F, warning=F}
 
+
+
 Summary_variables_by_centre <- Expansion_data %>%
   filter(Centre != "Gothenburg") %>%
   select("GFR [ml/min]" = GFR,
@@ -3263,6 +3265,12 @@ Clean_Results_eGFR_Creattype  %>%
 Clean_Results_CreatType_repeats  %>%
   write_csv(path = file.path(fig_export_dir, "Results_by_repeats.csv"))
 
+
+# S8 extended 
+Results_CreatType_all %>%
+  Clean_output_table(include_p10_p30 = T) %>% 
+  filter(equation %in% c("Piecewise linear", "Leave-one-out", "CamGFR v2")) %>%
+  write_csv(path = file.path(fig_export_dir, "S8_new_models.csv"))
 
 ```
 
