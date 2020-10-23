@@ -579,11 +579,18 @@ summary_centre <- df_mixed %>%
 write_csv(summary_centre,
           file.path(fig_export_dir, "Median_Scr_per_center.csv"))
 
-summary_method <- df_mixed %>%
+summary_centre_type <- df_mixed %>%
    group_by(Creatinine_type, Centre) %>%
+   summarise(Scr_median = median(Creat))
+write_csv(summary_centre_type,
+          file.path(fig_export_dir, "Median_Scr_per_centre_type.csv"))
+
+summary_method <- df_mixed %>%
+   group_by(x) %>%
    summarise(Scr_median = median(Creat))
 write_csv(summary_method,
           file.path(fig_export_dir, "Median_Scr_per_method.csv"))
+
 ```
 
 ## Creatinine measures over time at Cambridge and Manchester
