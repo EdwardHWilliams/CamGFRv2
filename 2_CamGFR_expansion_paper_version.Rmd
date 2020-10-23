@@ -236,10 +236,12 @@ write_excel_csv(Samples_by_ethnicity,
 ```{r Patient_numbers_by_diagnosis, cache = T, echo = F, warning=F}
 Diagnosis_summary <- Expansion_data %>%
   group_by(Diagnosis) %>%
+  mutate(Diagnosis = ifelse(Diagnosis == "Unknown" & Patient_type == "Cancer", "Unknown cancer", Diagnosis)) %>%
+  mutate(Diagnosis = ifelse(Diagnosis == "Unknown" & Patient_type == "Non-Cancer", "Unknown non-cancer", Diagnosis)) %>%
   summarise(`Number of samples` = n(), `Number of patients` = length(unique(PatientID))) %>%
   arrange(-`Number of samples`)
 Diagnosis_summary
-write_excel_csv(Samples_by_ethnicity,
+write_excel_csv(Diagnosis_summary,
                 file = file.path(fig_export_dir, "Table_S3_rough.csv"))
 
 ```
@@ -568,8 +570,8 @@ df_mixed <- Expansion_data %>%
                                   levels = c("IDMS", "Non_IDMS"), 
                                   labels = c("IDMS", "Non-IDMS"))) %>%
   mutate(x = interaction(Creatinine_type, Creatinine_method, sep = " "),
-         xcopy = x ) %>%
-  filter(GFR_index == 1)
+         xcopy = x ) #%>%
+  #filter(GFR_index == 1)
 
 summary_centre <- df_mixed %>%
    group_by(x, Centre) %>%
@@ -1184,12 +1186,12 @@ ggsave(filename = "Creatinine_comparison.pdf",
 # Cambridge non-IDMS IDMS comparison
 Expansion_data %>%
   filter(GFR_index == 1) %>%
-  dplyr::selectCreat, Centre, Creatinine_type) %>%
+  dplyr::select(Creat, Centre, Creatinine_type) %>%
   filter(Centre == "Cambridge") %>%
   t.test(Creat ~ Creatinine_type, data = .)
 Expansion_data %>%
   filter(GFR_index == 1) %>%
-  dplyr::selectCreat, Centre, Creatinine_type) %>%
+  dplyr::select(Creat, Centre, Creatinine_type) %>%
   filter(Centre == "Cambridge") %>%
   group_by(Creatinine_type) %>%
   summarise(m = mean(Creat)) %>%
@@ -1199,12 +1201,12 @@ Expansion_data %>%
 # Manchester non-IDMS IDMS comparison
 Expansion_data %>%
   filter(GFR_index == 1) %>%
-  dplyr::selectCreat, Centre, Creatinine_type) %>%
+  dplyr::select(Creat, Centre, Creatinine_type) %>%
   filter(Centre == "Manchester") %>%
   t.test(Creat ~ Creatinine_type, data = .)
 Expansion_data %>%
   filter(GFR_index == 1) %>%
-  dplyr::selectCreat, Centre, Creatinine_type) %>%
+  dplyr::select(Creat, Centre, Creatinine_type) %>%
   filter(Centre == "Manchester") %>%
   group_by(Creatinine_type) %>%
   summarise(m = mean(Creat)) %>%
@@ -1213,21 +1215,21 @@ Expansion_data %>%
 # Cambridge Manchester comparison Non-IDMS
 Expansion_data %>%
   filter(GFR_index == 1) %>%
-  dplyr::selectCreat, Centre, Creatinine_type, Creatinine_method) %>%
+  dplyr::select(Creat, Centre, Creatinine_type, Creatinine_method) %>%
   filter(Creatinine_type == "Non_IDMS", Centre != "Gothenburg") %>%
   t.test(Creat ~ Centre, data = .)
 
 # Cambridge Manchester comparison IDMS
 Expansion_data %>%
   filter(GFR_index == 1) %>%
-  dplyr::selectCreat, Centre, Creatinine_type, Creatinine_method) %>%
+  dplyr::select(Creat, Centre, Creatinine_type, Creatinine_method) %>%
   filter(Creatinine_type == "IDMS", Centre != "Gothenburg") %>%
   t.test(Creat ~ Centre, data = .)
 
 # Cambridge Gothenburg comparison IDMS
 Expansion_data %>%
   filter(GFR_index == 1) %>%
-  dplyr::selectCreat, Centre, Creatinine_type, Creatinine_method) %>%
+  dplyr::select(Creat, Centre, Creatinine_type, Creatinine_method) %>%
   filter(Creatinine_type == "IDMS", Centre != "Manchester") %>%
   t.test(Creat ~ Centre, data = .)
 
@@ -1235,14 +1237,14 @@ Expansion_data %>%
 # Manchester Gothenburg comparison IDMS
 Expansion_data %>%
   filter(GFR_index == 1) %>%
-  dplyr::selectCreat, Centre, Creatinine_type, Creatinine_method) %>%
+  dplyr::select(Creat, Centre, Creatinine_type, Creatinine_method) %>%
   filter(Creatinine_type == "IDMS", Centre != "Cambridge") %>%
   t.test(Creat ~ Centre, data = .)
 
 # Cambridge Manchester comparison IDMS Jaffe
 Expansion_data %>%
   filter(GFR_index == 1) %>%
-  dplyr::selectCreat, Centre, Creatinine_type, Creatinine_method) %>%
+  dplyr::select(Creat, Centre, Creatinine_type, Creatinine_method) %>%
   filter(Creatinine_type == "IDMS", Creatinine_method == "Jaffe") %>%
   t.test(Creat ~ Centre, data = .)
 
@@ -1256,7 +1258,7 @@ Expansion_data %>%
 
 Expansion_data %>%
   filter(GFR_index == 1) %>%
-  dplyr::selectCreat, Centre, Creatinine_type, Creatinine_method) %>%
+  dplyr::select(Creat, Centre, Creatinine_type, Creatinine_method) %>%
   filter(Creatinine_type == "IDMS", Centre == "Cambridge") %>%
   t.test((Creat) ~ Creatinine_method, data = .)
 
@@ -1264,7 +1266,7 @@ Expansion_data %>%
 # Jaffe Enzymatic comparison IDMS only
 df_mixed %>%
   filter(GFR_index == 1) %>%
-  dplyr::selectCreat, Centre, Creatinine_type, Creatinine_method) %>%
+  dplyr::select(Creat, Centre, Creatinine_type, Creatinine_method) %>%
   filter(Creatinine_type == "IDMS") %>%
   t.test(log(Creat) ~ Creatinine_method, data = .)
 # p-value = 1.557e-05
@@ -1272,7 +1274,7 @@ df_mixed %>%
 
 # Cambridge Gothenburg comparison IDMS Enzymatic
 Expansion_data %>%
-  dplyr::selectCreat, Centre, Creatinine_type, Creatinine_method) %>%
+  dplyr::select(Creat, Centre, Creatinine_type, Creatinine_method) %>%
   filter(Creatinine_type == "IDMS", Creatinine_method == "Enzymatic") %>%
   t.test((Creat) ~ Centre, data = .)
 # p-value = 0.03308
@@ -1280,14 +1282,14 @@ Expansion_data %>%
 
 # Cambridge Manchester comparison IDMS Jaffe
 Expansion_data %>%
-  dplyr::selectCreat, Centre, Creatinine_type, Creatinine_method) %>%
+  dplyr::select(Creat, Centre, Creatinine_type, Creatinine_method) %>%
   filter(Creatinine_type == "IDMS", Creatinine_method == "Jaffe") %>%
   t.test(log(Creat) ~ Centre, data = .)
 # p-value = 0.3694
 
 # Cambridge Manchester comparison Non-IDMS Jaffe
 Expansion_data %>%
-  dplyr::selectCreat, Centre, Creatinine_type, Creatinine_method) %>%
+  dplyr::select(Creat, Centre, Creatinine_type, Creatinine_method) %>%
   filter(Creatinine_type == "Non_IDMS", Creatinine_method == "Jaffe") %>%
   t.test(log(Creat) ~ Centre, data = .)
 # p-value = 1.215e-09
@@ -1296,7 +1298,7 @@ Expansion_data %>%
 
 # IDMS Non-IDMS comparison Manchester Jaffe
 Expansion_data %>%
-  dplyr::selectCreat, Centre, Creatinine_type, Creatinine_method) %>%
+  dplyr::select(Creat, Centre, Creatinine_type, Creatinine_method) %>%
   filter(Centre == "Manchester") %>%
   t.test(Creat ~ Creatinine_type, data = .)
 # p-value = 4.42e-12
@@ -1304,7 +1306,7 @@ Expansion_data %>%
 
 # IDMS Non-IDMS comparison Cambridge Jaffe
 Expansion_data %>%
-  dplyr::selectCreat, Centre, Creatinine_type, Creatinine_method) %>%
+  dplyr::select(Creat, Centre, Creatinine_type, Creatinine_method) %>%
   filter(Centre == "Cambridge", Creatinine_method == "Jaffe") %>%
   t.test(Creat ~ Creatinine_type, data = .)
 # p-value < 2.2e-16
@@ -1312,14 +1314,14 @@ Expansion_data %>%
 
 # IDMS Non-IDMS comparison Jaffe
 Expansion_data %>%
-  dplyr::selectCreat, Centre, Creatinine_type, Creatinine_method) %>%
+  dplyr::select(Creat, Centre, Creatinine_type, Creatinine_method) %>%
   filter(Creatinine_method == "Jaffe") %>%
   t.test(Creat ~ Creatinine_type, data = .)
 # p-value < 2.2e-16
 
 # Enzymatic Jaffe Addem
 Expansion_data %>%
-  dplyr::selectCreat, Centre, Creatinine_type, Creatinine_method) %>%
+  dplyr::select(Creat, Centre, Creatinine_type, Creatinine_method) %>%
   filter(Creatinine_type == "IDMS", Centre == "Cambridge") %>%
   t.test(Creat ~ Creatinine_method, data = .)
 # p-value < 2.2e-16
@@ -1664,7 +1666,7 @@ Original_refitted_MAplot <-  Expansion_data %>%
   mutate(log_Creat = log(Creat)) %>%
   mutate(Original = predict(Addenbrooks_sqrt_model, newdata = .)^2) %>%
   mutate(Refitted = predict(Refit_CamGFR, newdata = .)^2) %>%
-  dplyr::selectGFR, Original, Refitted) %>%
+  dplyr::select(GFR, Original, Refitted) %>%
   # ggplot(aes(x = GFR - Original, y = GFR - Refitted))
   ggplot(aes(x = Original/2 + Refitted/2, y = Original - Refitted)) +
   geom_hline(yintercept = 0) + 
@@ -1686,7 +1688,7 @@ Fitted_df <- Expansion_data %>%
   mutate(log_Creat = log(Creat)) %>%
   mutate(Original = predict(Addenbrooks_sqrt_model, newdata = .)^2) %>%
   mutate(Refitted = predict(Refit_CamGFR, newdata = .)^2) %>%
-  dplyr::selectGFR, Original, Refitted, Centre, Creatinine_type) %>% 
+  dplyr::select(GFR, Original, Refitted, Centre, Creatinine_type) %>% 
   gather(key = equation, value = fitted, -GFR, -Centre, -Creatinine_type) %>%
   mutate(resid = GFR - fitted) %>%
   bind_rows(mutate(., Centre = "All"))
@@ -1733,7 +1735,7 @@ df <- Expansion_data %>%
   mutate(log_Creat = log(Creat)) %>%
   mutate(Original = predict(Addenbrooks_sqrt_model, newdata = .)^2) %>%
   mutate(Refitted = predict(Refit_CamGFR, newdata = .)^2) %>%
-  dplyr::selectGFR, Original, Refitted, Centre, Creat, Creatinine_type,
+  dplyr::select(GFR, Original, Refitted, Centre, Creat, Creatinine_type,
          Creatinine_method) %>% 
   gather(key = equation, value = fitted, Original, Refitted) %>%
   mutate(resid = GFR - fitted) %>%
@@ -1844,7 +1846,7 @@ CI_upr<- max(boxcox_res$x[which(boxcox_res$y - CI_y > 0)])
 ```{r GFR_transformation, echo = F, fig.width=9, fig.height=6, message=F, fig.cap="Density plot of GFR, sqrt(GFR) and log(GFR) alowng with a fitted normal distribution in red."}
 
 plot_data <- Expansion_data_fit %>%
-  dplyr::selectGFR) %>%
+  dplyr::select(GFR) %>%
   mutate(`sqrt(GFR)` = sqrt(GFR), 
          `log(GFR)` = log(GFR)) %>%
   pivot_longer(cols = everything()) 
@@ -1951,21 +1953,21 @@ hence is expected to be highly correlated with both).
 
 ```{r PLOT_data_corplot, fig.width=4, fig.height=4, fig.cap="Correlations matrix of GFR along with the explanitory variable", echo = F}
 # correlations = Expansion_data_fit %>%
-#   dplyr::selectCreat, Age, Ht, Wt, BSA, GFR) %>%
-#   dplyr::selectGFR, Creat, everything())
+#   dplyr::select(Creat, Age, Ht, Wt, BSA, GFR) %>%
+#   dplyr::select(GFR, Creat, everything())
 # ggcorr(correlations, method = c("pairwise", "spearman"), label = TRUE, 
 #        label_size = 3.5, label_color = "black", 
 #        geom = "circle", max_size = 20, min_size = 6)
 
 cormat <- Expansion_data_fit %>%
-  dplyr::selectCreat, Age, Ht, Wt, BSA, GFR) %>%
-  dplyr::selectGFR, Creat, everything()) %>%
+  dplyr::select(Creat, Age, Ht, Wt, BSA, GFR) %>%
+  dplyr::select(GFR, Creat, everything()) %>%
   cor() %>%
   round(2)
 
 # cormat <- Expansion_data_fit %>%
-#   dplyr::selectCreat, Age, Ht, Wt, BSA, GFR) %>%
-#   dplyr::selectGFR, Age, Creat, Urea, Sodium, Albumin, Ht, Wt, BSA) %>%
+#   dplyr::select(Creat, Age, Ht, Wt, BSA, GFR) %>%
+#   dplyr::select(GFR, Age, Creat, Urea, Sodium, Albumin, Ht, Wt, BSA) %>%
 #   cor(use = "pairwise.complete.obs") %>%
 #   round(2)
 
@@ -2342,7 +2344,7 @@ func <- function(model, name){
   model %>%
     tidy() %>%
     as.data.frame() %>%
-    dplyr::selectterm, estimate, std.error) %>%
+    dplyr::select(term, estimate, std.error) %>%
     mutate(model = name)
 }
 
@@ -2420,7 +2422,7 @@ p1 <- Expansion_data_fit %>%
   mutate(fitted = BIC_model$fitted.values) %>%
   mutate(resid = BIC_model$residuals) %>%
   mutate(log_Creat = log(Creat)) %>%
-  dplyr::selectresid, fitted, Age, log_Creat, BSA, Centre, Creatinine_type) %>%
+  dplyr::select(resid, fitted, Age, log_Creat, BSA, Centre, Creatinine_type) %>%
   gather(key = variable, value = value, -resid, -Centre, -Creatinine_type) %>%
   mutate(variable = factor(variable,
                            levels = c("Age", "fitted", "log_Creat", "BSA"),
@@ -2767,7 +2769,7 @@ p1 <- Expansion_data_fit %>%
   mutate(fitted = Spline_model_age_creat$fitted.values) %>%
   mutate(resid = Spline_model_age_creat$residuals) %>%
   mutate(log_Creat = log(Creat)) %>%
-  dplyr::selectresid, fitted, Age, log_Creat, BSA, Centre, Creatinine_type) %>%
+  dplyr::select(resid, fitted, Age, log_Creat, BSA, Centre, Creatinine_type) %>%
   gather(key = variable, value = value, -resid, -Centre, -Creatinine_type) %>%
   mutate(variable = factor(variable,
                            levels = c("Age", "fitted", "log_Creat", "BSA"),
@@ -3021,10 +3023,6 @@ p1 <- Expansion_data_fit %>%
   ylim(-2, 1)
 
 
-Expansion_data %>% 
-  dplyr::selectDiagnosis, Patient_type) %>%
-  table()
-
 
 p2 <- Expansion_data_fit %>% 
   filter(Creatinine_type == "IDMS") %>% 
@@ -3080,10 +3078,12 @@ Clean_output_table <- function(table, include_p10_p30 = F){
     mutate(IQR = paste0(IQR, " (", IQR_lwr, ", ", IQR_upr, ")")) 
     if(include_p10_p30 == T){
       t %>% 
+        mutate("P30" = paste0(P30, " (", P30_lwr, ", ", P30_upr, ")")) %>%
         mutate("Dose P10" = paste0(P10_dose, " (", P10_dose_lwr, ", ", P10_dose_upr, ")")) %>%
         mutate("Dose P20" = paste0(P20_dose, " (", P20_dose_lwr, ", ", P20_dose_upr, ")")) %>%
         mutate("Dose P30" = paste0(P30_dose, " (", P30_dose_lwr, ", ", P30_dose_upr, ")")) %>%
         select(-RMSE_lwr, -RMSE_upr, -median_lwr, -median_upr, -IQR_lwr, -IQR_upr,
+               -P30_lwr, -P30_upr,
                -P10_dose_lwr, -P10_dose_upr, -P10_dose,
                -P20_dose_lwr, -P20_dose_upr, -P20_dose,
                -P30_dose_lwr, -P30_dose_upr, -P30_dose)
@@ -3577,7 +3577,7 @@ Results_CreatType_dose <- Validation_fitted_df %>%
   Statistic_summary_with_doseP20()  
 Results_CreatType_dose %>% 
   arrange(Creatinine_type, P20_dose) %>% 
-  dplyr::selectCreatinine_type, median, RMSE, IQR, P20_dose, P20_dose_lwr, 
+  dplyr::select(Creatinine_type, median, RMSE, IQR, P20_dose, P20_dose_lwr, 
          P20_dose_upr) 
 
 mround <- function(x,base){
@@ -3591,7 +3591,7 @@ equal_func <- function(x){
 df <- Validation_fitted_df %>%
   filter(Patient_type == "Cancer") %>%
   filter(Patient_type != "Non-cancer") %>%
-  dplyr::selectCreatinine_type, equation, GFR, fitted) %>%
+  dplyr::select(Creatinine_type, equation, GFR, fitted) %>%
   mutate(GFR_dose = mround(5*(GFR + 25), 50), 
          fitted_dose = mround(5*(fitted + 25), 50)) %>%
   mutate(GFR_dose = ifelse(GFR_dose > 750, 750, GFR_dose),
@@ -3988,7 +3988,7 @@ md_repeat_samples <- Expansion_data %>%
 cutpoints <- Expansion_data %>%
   mutate(Age_cut = cut_number(Age, 5, dig.lab=4)) %>% 
   mutate(BSA_cut = cut_number(BSA, 5, dig.lab=6)) %>%
-  dplyr::selectAge_cut, BSA_cut) %>%
+  dplyr::select(Age_cut, BSA_cut) %>%
   summarise(age_lower = as.numeric(gsub("[\\[\\(](.*),.*", "\\1", levels(Age_cut))),
             bsa_lower = as.numeric(gsub("[\\[\\(](.*),.*", "\\1", levels(BSA_cut))),
             age_higher = as.numeric(gsub(".*,(.*)\\]", "\\1", levels(Age_cut))),
@@ -4162,10 +4162,10 @@ plot_grid(p1, p2, ncol =1)
 ```{r SCR_GFR_date_diff, echo = F, eval = F}
 GFR_creatinine_date_diff_plot <- 
   Expansion_data %>% 
-  dplyr::selectDate_GFR, Date_creat, Centre) %>%
+  dplyr::select(Date_GFR, Date_creat, Centre) %>%
   mutate(Date_diff = as.numeric(Date_creat - Date_GFR)) %>%
   filter(!is.na(Date_diff)) %>%
-  dplyr::selectDate_diff, Centre) %>%
+  dplyr::select(Date_diff, Centre) %>%
   ggplot(aes(x=Date_diff,  fill = Centre)) +
   geom_bar() + 
   ggplot_theme() + 
@@ -4437,7 +4437,7 @@ Refit_CamGFR_Cam <- Expansion_data %>%
 mutate(tidy(Refit_CamGFR_Goth), Missing_centre = "Gothenburg") %>%
   bind_rows(mutate(tidy(Refit_CamGFR_Man), Missing_centre = "Manchester")) %>%
   bind_rows(mutate(tidy(Refit_CamGFR_Cam), Missing_centre = "Cambridge")) %>%
-  dplyr::selectterm, estimate, std.error, Missing_centre) %>% 
+  dplyr::select(term, estimate, std.error, Missing_centre) %>% 
   pivot_longer(estimate:std.error) %>%
   pivot_wider(names_from = Missing_centre, values_from = value) %>%
   arrange(name)
