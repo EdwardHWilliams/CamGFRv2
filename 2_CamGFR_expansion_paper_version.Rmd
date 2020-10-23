@@ -1381,7 +1381,8 @@ dat.work$fit_index <- factor(as.character(dat.work$fit_index),
                              labels = c("Development", "Validation"))
 dat.work$Sex <- factor(dat.work$Sex, levels = c("F", "M"), labels = c("Female", "Male"))
 dat.work$Centre <- factor(dat.work$Centre, levels = c("Cambridge", "Manchester", "Gothenburg"))
-dat.work$Patient_type <- factor(dat.work$Patient_type, levels = c("Cancer", "Haem", "Non-Cancer", "Unknown"))
+dat.work$Patient_type[grep("Unknown", dat.work$Patient_type)] <- "Non-Cancer"
+dat.work$Patient_type <- factor(dat.work$Patient_type, levels = c("Cancer", "Haem", "Non-Cancer"))
 dat.work$Creatinine_type <- factor(dat.work$Creatinine_type)
 vars.all.cat <- rep(c(0, 1), c(4, 6))
 vars.all.chisq <- rep(c(0, 1), c(4, 6))
